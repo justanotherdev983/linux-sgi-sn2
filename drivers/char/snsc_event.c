@@ -25,8 +25,8 @@
 
 static struct subch_data_s *event_sd;
 
-void scdrv_event(struct tasklet_struct *t);
-DECLARE_TASKLET(sn_sysctl_event, scdrv_event);
+void scdrv_event(unsigned long);
+DECLARE_TASKLET(sn_sysctl_event, scdrv_event, 0);
 
 /*
  * scdrv_event_interrupt
@@ -232,7 +232,7 @@ scdrv_dispatch_event(char *event, int len)
  * that there are no more immediately available.
  */
 void
-scdrv_event(struct tasklet_struct *t)
+scdrv_event(unsigned long dummy)
 {
 	int status;
 	int len;

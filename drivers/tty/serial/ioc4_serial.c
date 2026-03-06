@@ -9,8 +9,6 @@
  * includes all the support functions needed (support functions, etc.)
  * and the serial driver itself.
  */
-
-#include <linux/dma-mapping.h>
 #include <linux/errno.h>
 #include <linux/tty.h>
 #include <linux/tty_flip.h>
@@ -1147,11 +1145,11 @@ static inline int ioc4_attach_local(struct ioc4_driver_data *idd)
 
 		} else {
 			if (port->ip_dma_ringbuf == 0) {
-				port->ip_cpu_ringbuf = dma_alloc_coherent(&pdev->dev,
-                                          TOTAL_RING_BUF_SIZE,
-                                          &port->ip_dma_ringbuf,
-                                          GFP_KERNEL);			}
+				port->ip_cpu_ringbuf = pci_alloc_consistent
+					(pdev, TOTAL_RING_BUF_SIZE,
+					&port->ip_dma_ringbuf);
 
+			}
 			BUG_ON(!((((int64_t)port->ip_dma_ringbuf) &
 				(TOTAL_RING_BUF_SIZE - 1)) == 0));
 			DPRINT_CONFIG(("%s : ip_cpu_ringbuf 0x%p "
@@ -1628,46 +1626,54 @@ static int ioc4_set_proto(struct ioc4_port *port, int proto)
  */
 static void transmit_chars(struct uart_port *the_port)
 {
+	int xmit_count, tail, head;
 	int result;
-	unsigned char c;
+	char *start;
+	struct tty_struct *tty;
 	struct ioc4_port *port = get_ioc4_port(the_port, 0);
 	struct uart_state *state;
 
-	if (!the_port || !port)
+	if (!the_port)
+		return;
+	if (!port)
 		return;
 
 	state = the_port->state;
+	tty = state->port.tty;
 
-	if (kfifo_is_empty(&state->port.xmit_fifo)) {
+	if (uart_circ_empty(&state->xmit) || uart_tx_stopped(the_port)) {
 		/* Nothing to do or hw stopped */
 		set_notification(port, N_ALL_OUTPUT, 0);
 		return;
 	}
 
-	/* write out all the data until HW buffer is full */
-	while (!kfifo_is_empty(&state->port.xmit_fifo)) {
-		/* Peek at the next char */
-		if (!kfifo_out_peek(&state->port.xmit_fifo, &c, 1))
-			break;
-			
-		result = do_write(port, (char *)&c, 1);
+	head = state->xmit.head;
+	tail = state->xmit.tail;
+	start = (char *)&state->xmit.buf[tail];
+
+	/* write out all the data or until the end of the buffer */
+	xmit_count = (head < tail) ? (UART_XMIT_SIZE - tail) : (head - tail);
+	if (xmit_count > 0) {
+		result = do_write(port, start, xmit_count);
 		if (result > 0) {
-			/* HW accepted it, actually consume it from fifo */
-			kfifo_get(&state->port.xmit_fifo, &c);
-			the_port->icount.tx++;
-		} else {
-			/* HW buffer is full */
-			break;
+			/* booking */
+			xmit_count -= result;
+			the_port->icount.tx += result;
+			/* advance the pointers */
+			tail += result;
+			tail &= UART_XMIT_SIZE - 1;
+			state->xmit.tail = tail;
+			start = (char *)&state->xmit.buf[tail];
 		}
 	}
-
-	if (kfifo_len(&state->port.xmit_fifo) < WAKEUP_CHARS)
+	if (uart_circ_chars_pending(&state->xmit) < WAKEUP_CHARS)
 		uart_write_wakeup(the_port);
 
-	if (kfifo_is_empty(&state->port.xmit_fifo))
+	if (uart_circ_empty(&state->xmit)) {
 		set_notification(port, N_OUTPUT_LOWAT, 0);
-	else
+	} else {
 		set_notification(port, N_OUTPUT_LOWAT, 1);
+	}
 }
 
 /**
@@ -1678,7 +1684,7 @@ static void transmit_chars(struct uart_port *the_port)
  */
 static void
 ioc4_change_speed(struct uart_port *the_port,
-		  struct ktermios *new_termios, const struct ktermios *old_termios)
+		  struct ktermios *new_termios, struct ktermios *old_termios)
 {
 	struct ioc4_port *port = get_ioc4_port(the_port, 0);
 	int baud, bits;
@@ -1732,8 +1738,12 @@ ioc4_change_speed(struct uart_port *the_port,
 
 	if (!the_port->fifosize)
 		the_port->fifosize = IOC4_FIFO_CHARS;
+	the_port->timeout = ((the_port->fifosize * HZ * bits) / (baud / 10));
+	the_port->timeout += HZ / 50;	/* Add .02 seconds of slop */
 
 	the_port->ignore_status_mask = N_ALL_INPUT;
+
+	state->port.low_latency = 1;
 
 	if (iflag & IGNPAR)
 		the_port->ignore_status_mask &= ~(N_PARITY_ERROR
@@ -2562,7 +2572,7 @@ static int ic4_startup(struct uart_port *the_port)
  */
 static void
 ic4_set_termios(struct uart_port *the_port,
-		struct ktermios *termios, const struct ktermios *old_termios)
+		struct ktermios *termios, struct ktermios *old_termios)
 {
 	unsigned long port_flags;
 
@@ -2664,7 +2674,7 @@ static int ioc4_serial_remove_one(struct ioc4_driver_data *idd)
 		port = control->ic_port[port_num].icp_port;
 		/* we allocate in pairs */
 		if (!(port_num & 1) && port) {
-			dma_free_coherent(&port->ip_pdev->dev,
+			pci_free_consistent(port->ip_pdev,
 					TOTAL_RING_BUF_SIZE,
 					port->ip_cpu_ringbuf,
 					port->ip_dma_ringbuf);

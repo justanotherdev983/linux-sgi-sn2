@@ -1,4 +1,3 @@
-#include <asm/iosapic.h>
 /*
  *  acpi.c - Architecture-Specific Low-Level ACPI Support
  *
@@ -42,7 +41,6 @@
 #include <linux/types.h>
 #include <linux/irq.h>
 #include <linux/acpi.h>
-#include <asm/iosapic.h>
 #include <linux/efi.h>
 #include <linux/mmzone.h>
 #include <linux/nodemask.h>
@@ -179,7 +177,7 @@ struct acpi_table_madt *acpi_madt __initdata;
 static u8 has_8259;
 
 static int __init
-acpi_parse_lapic_addr_ovr(union acpi_subtable_headers *header,
+acpi_parse_lapic_addr_ovr(struct acpi_subtable_header * header,
 			  const unsigned long end)
 {
 	struct acpi_madt_local_apic_override *lapic;
@@ -197,7 +195,7 @@ acpi_parse_lapic_addr_ovr(union acpi_subtable_headers *header,
 }
 
 static int __init
-acpi_parse_lsapic(union acpi_subtable_headers *header, const unsigned long end)
+acpi_parse_lsapic(struct acpi_subtable_header * header, const unsigned long end)
 {
 	struct acpi_madt_local_sapic *lsapic;
 
@@ -218,7 +216,7 @@ acpi_parse_lsapic(union acpi_subtable_headers *header, const unsigned long end)
 }
 
 static int __init
-acpi_parse_lapic_nmi(union acpi_subtable_headers *header, const unsigned long end)
+acpi_parse_lapic_nmi(struct acpi_subtable_header * header, const unsigned long end)
 {
 	struct acpi_madt_local_apic_nmi *lacpi_nmi;
 
@@ -232,7 +230,7 @@ acpi_parse_lapic_nmi(union acpi_subtable_headers *header, const unsigned long en
 }
 
 static int __init
-acpi_parse_iosapic(union acpi_subtable_headers *header, const unsigned long end)
+acpi_parse_iosapic(struct acpi_subtable_header * header, const unsigned long end)
 {
 	struct acpi_madt_io_sapic *iosapic;
 
@@ -247,7 +245,7 @@ acpi_parse_iosapic(union acpi_subtable_headers *header, const unsigned long end)
 static unsigned int __initdata acpi_madt_rev;
 
 static int __init
-acpi_parse_plat_int_src(union acpi_subtable_headers *header,
+acpi_parse_plat_int_src(struct acpi_subtable_header * header,
 			const unsigned long end)
 {
 	struct acpi_madt_interrupt_source *plintsrc;
@@ -331,7 +329,7 @@ unsigned int get_cpei_target_cpu(void)
 }
 
 static int __init
-acpi_parse_int_src_ovr(union acpi_subtable_headers *header,
+acpi_parse_int_src_ovr(struct acpi_subtable_header * header,
 		       const unsigned long end)
 {
 	struct acpi_madt_interrupt_override *p;
@@ -352,7 +350,7 @@ acpi_parse_int_src_ovr(union acpi_subtable_headers *header,
 }
 
 static int __init
-acpi_parse_nmi_src(union acpi_subtable_headers *header, const unsigned long end)
+acpi_parse_nmi_src(struct acpi_subtable_header * header, const unsigned long end)
 {
 	struct acpi_madt_nmi_source *nmi_src;
 
