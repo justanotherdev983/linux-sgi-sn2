@@ -19,9 +19,6 @@
 #include <asm/processor.h>
 #include <asm/exception.h>
 
-extern int expand_upwards(struct vm_area_struct *vma, unsigned long address);
-extern int expand_downwards(struct vm_area_struct *vma, unsigned long address);
-
 extern int die(char *, struct pt_regs *, long);
 
 #ifdef CONFIG_KPROBES
@@ -62,8 +59,7 @@ mapped_kernel_page_is_present (unsigned long address)
 	if (pgd_none(*pgd) || pgd_bad(*pgd))
 		return 0;
 
-	p4d_t *p4d = p4d_offset(pgd, address);
-	pud = pud_offset(p4d, address);
+	pud = pud_offset(pgd, address);
 	if (pud_none(*pud) || pud_bad(*pud))
 		return 0;
 
@@ -96,8 +92,8 @@ ia64_do_page_fault (unsigned long address, unsigned long isr, struct pt_regs *re
 	mask = ((((isr >> IA64_ISR_X_BIT) & 1UL) << VM_EXEC_BIT)
 		| (((isr >> IA64_ISR_W_BIT) & 1UL) << VM_WRITE_BIT));
 
-	/* mmap_lock is performance critical.... */
-	prefetchw(&mm->mmap_lock);
+	/* mmap_sem is performance critical.... */
+	prefetchw(&mm->mmap_sem);
 
 	/*
 	 * If we're in an interrupt or have no user context, we must not take the fault..
@@ -108,7 +104,7 @@ ia64_do_page_fault (unsigned long address, unsigned long isr, struct pt_regs *re
 #ifdef CONFIG_VIRTUAL_MEM_MAP
 	/*
 	 * If fault is in region 5 and we are in the kernel, we may already
-	 * have the mmap_lock (pfn_valid macro is called during mmap). There
+	 * have the mmap_sem (pfn_valid macro is called during mmap). There
 	 * is no vma for region 5 addr's anyway, so skip getting the semaphore
 	 * and go directly to the exception handling code.
 	 */
@@ -128,7 +124,7 @@ ia64_do_page_fault (unsigned long address, unsigned long isr, struct pt_regs *re
 	if (mask & VM_WRITE)
 		flags |= FAULT_FLAG_WRITE;
 retry:
-	down_read(&mm->mmap_lock);
+	down_read(&mm->mmap_sem);
 
 	vma = find_vma_prev(mm, address, &prev_vma);
 	if (!vma && !prev_vma )
@@ -147,6 +143,13 @@ retry:
   good_area:
 	code = SEGV_ACCERR;
 
+	/* OK, we've got a good vm_area for this memory area.  Check the access permissions: */
+
+#	if (((1 << VM_READ_BIT) != VM_READ || (1 << VM_WRITE_BIT) != VM_WRITE) \
+	    || (1 << VM_EXEC_BIT) != VM_EXEC)
+#		error File is out of sync with <linux/mm.h>.  Please update.
+#	endif
+
 	if (((isr >> IA64_ISR_R_BIT) & 1UL) && (!(vma->vm_flags & (VM_READ | VM_WRITE))))
 		goto bad_area;
 
@@ -158,7 +161,7 @@ retry:
 	 * sure we exit gracefully rather than endlessly redo the
 	 * fault.
 	 */
-	fault = handle_mm_fault(vma, address, flags, regs);
+	fault = handle_mm_fault(vma, address, flags);
 
 	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current))
 		return;
@@ -189,7 +192,7 @@ retry:
 			flags &= ~FAULT_FLAG_ALLOW_RETRY;
 			flags |= FAULT_FLAG_TRIED;
 
-			 /* No need to up_read(&mm->mmap_lock) as we would
+			 /* No need to up_read(&mm->mmap_sem) as we would
 			 * have already released it in __lock_page_or_retry
 			 * in mm/filemap.c.
 			 */
@@ -198,7 +201,7 @@ retry:
 		}
 	}
 
-	up_read(&mm->mmap_lock);
+	up_read(&mm->mmap_sem);
 	return;
 
   check_expansion:
@@ -210,7 +213,7 @@ retry:
 		if (REGION_NUMBER(address) != REGION_NUMBER(vma->vm_start)
 		    || REGION_OFFSET(address) >= RGN_MAP_LIMIT)
 			goto bad_area;
-		if (expand_downwards(vma, address))
+		if (expand_stack(vma, address))
 			goto bad_area;
 	} else {
 		vma = prev_vma;
@@ -229,7 +232,7 @@ retry:
 	goto good_area;
 
   bad_area:
-	up_read(&mm->mmap_lock);
+	up_read(&mm->mmap_sem);
 #ifdef CONFIG_VIRTUAL_MEM_MAP
   bad_area_no_up:
 #endif
@@ -245,7 +248,8 @@ retry:
 		return;
 	}
 	if (user_mode(regs)) {
-		force_sig_fault(signal, code, (void __user *) address);
+		force_sig_fault(signal, code, (void __user *) address,
+				0, __ISR_VALID, isr, current);
 		return;
 	}
 
@@ -294,7 +298,7 @@ retry:
 	return;
 
   out_of_memory:
-	up_read(&mm->mmap_lock);
+	up_read(&mm->mmap_sem);
 	if (!user_mode(regs))
 		goto no_context;
 	pagefault_out_of_memory();

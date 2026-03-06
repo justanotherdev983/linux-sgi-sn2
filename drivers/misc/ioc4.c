@@ -49,10 +49,6 @@
 #define IOC4_CALIBRATE_HIGH_MHZ 75	/* Upper bound on bus speed sanity */
 #define IOC4_CALIBRATE_DEFAULT_MHZ 66	/* Assumed if sanity check fails */
 
-#ifndef PCI_DEVICE_ID_SGI_IOC4
-#define PCI_DEVICE_ID_SGI_IOC4  0x100a
-#endif
-
 /************************
  * Submodule management *
  ************************/
