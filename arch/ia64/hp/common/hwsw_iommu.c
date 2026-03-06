@@ -15,7 +15,6 @@
 
 #include <linux/device.h>
 #include <linux/dma-mapping.h>
-#include <linux/dma-map-ops.h>
 #include <linux/swiotlb.h>
 #include <linux/export.h>
 #include <asm/machvec.h>
@@ -23,7 +22,7 @@
 extern const struct dma_map_ops sba_dma_ops;
 
 /* swiotlb declarations & definitions: */
-extern int swiotlb_init_late(size_t size, gfp_t gfp_mask, int (*remap)(void *, unsigned long));
+extern int swiotlb_late_init_with_default_size (size_t size);
 
 /*
  * Note: we need to make the determination of whether or not to use
@@ -48,7 +47,7 @@ void __init
 hwsw_init (void)
 {
 	/* default to a smallish 2MB sw I/O TLB */
-	if (swiotlb_init_late(2 * (1<<20), GFP_DMA, NULL) != 0) {
+	if (swiotlb_late_init_with_default_size (2 * (1<<20)) != 0) {
 #ifdef CONFIG_IA64_GENERIC
 		/* Better to have normal DMA than panic */
 		printk(KERN_WARNING "%s: Failed to initialize software I/O TLB,"

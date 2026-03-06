@@ -48,8 +48,8 @@
 
 static struct Scsi_Host *host;
 
-static void simscsi_interrupt(struct tasklet_struct *t);
-static DECLARE_TASKLET(simscsi_tasklet, simscsi_interrupt);
+static void simscsi_interrupt (unsigned long val);
+static DECLARE_TASKLET(simscsi_tasklet, simscsi_interrupt, 0);
 
 struct disk_req {
 	unsigned long addr;
@@ -97,7 +97,7 @@ simscsi_setup (char *s)
 __setup("simscsi=", simscsi_setup);
 
 static void
-simscsi_interrupt(struct tasklet_struct *t)
+simscsi_interrupt (unsigned long val)
 {
 	struct scsi_cmnd *sc;
 
@@ -105,13 +105,14 @@ simscsi_interrupt(struct tasklet_struct *t)
 		atomic_dec(&num_reqs);
 		queue[rd].sc = NULL;
 		if (DBG)
-		scsi_done(sc);
+			printk("simscsi_interrupt: done with %ld\n", sc->serial_number);
+		(*sc->scsi_done)(sc);
 		rd = (rd + 1) % SIMSCSI_REQ_QUEUE_LEN;
 	}
 }
 
 static int
-simscsi_biosparam (struct scsi_device *sdev, struct gendisk *n,
+simscsi_biosparam (struct scsi_device *sdev, struct block_device *n,
 		sector_t capacity, int ip[])
 {
 	ip[0] = 64;		/* heads */
@@ -147,7 +148,7 @@ simscsi_sg_readwrite (struct scsi_cmnd *sc, int mode, unsigned long offset)
 		}
 		offset +=  sl->length;
 	}
-	sc->result = 0;
+	sc->result = GOOD;
 }
 
 /*
@@ -202,7 +203,7 @@ simscsi_readwrite10 (struct scsi_cmnd *sc, int mode)
 }
 
 static int
-simscsi_queuecommand_lck(struct scsi_cmnd *sc)
+simscsi_queuecommand_lck (struct scsi_cmnd *sc, void (*done)(struct scsi_cmnd *))
 {
 	unsigned int target_id = sc->device->id;
 	char fname[MAX_ROOT_LEN+16];
@@ -214,10 +215,11 @@ simscsi_queuecommand_lck(struct scsi_cmnd *sc)
 
 	if (DBG)
 		printk("simscsi_queuecommand: target=%d,cmnd=%u,sc=%lu,sp=%lx,done=%p\n",
+		       target_id, sc->cmnd[0], sc->serial_number, sp, done);
 #endif
 
 	sc->result = DID_BAD_TARGET << 16;
-	
+	sc->scsi_done = done;
 	if (target_id <= 15 && sc->device->lun == 0) {
 		switch (sc->cmnd[0]) {
 		      case INQUIRY:
@@ -242,11 +244,11 @@ simscsi_queuecommand_lck(struct scsi_cmnd *sc)
 			buf[7] = 0;	/* various flags */
 			memcpy(buf + 8, "HP      SIMULATED DISK  0.00",  28);
 			scsi_sg_copy_from_buffer(sc, buf, 36);
-			sc->result = 0;
+			sc->result = GOOD;
 			break;
 
 		      case TEST_UNIT_READY:
-			sc->result = 0;
+			sc->result = GOOD;
 			break;
 
 		      case READ_6:
@@ -290,7 +292,7 @@ simscsi_queuecommand_lck(struct scsi_cmnd *sc)
 			buf[6] = 2;
 			buf[7] = 0;
 			scsi_sg_copy_from_buffer(sc, buf, 8);
-			sc->result = 0;
+			sc->result = GOOD;
 			break;
 
 		      case MODE_SENSE:
@@ -298,7 +300,7 @@ simscsi_queuecommand_lck(struct scsi_cmnd *sc)
 			/* sd.c uses this to determine whether disk does write-caching. */
 			scsi_sg_copy_from_buffer(sc, (char *)empty_zero_page,
 						 PAGE_SIZE);
-			sc->result = 0;
+			sc->result = GOOD;
 			break;
 
 		      case START_STOP:
@@ -310,7 +312,7 @@ simscsi_queuecommand_lck(struct scsi_cmnd *sc)
 		}
 	}
 	if (sc->result == DID_BAD_TARGET) {
-		
+		sc->result |= DRIVER_SENSE << 24;
 		sc->sense_buffer[0] = 0x70;
 		sc->sense_buffer[2] = 0x00;
 	}

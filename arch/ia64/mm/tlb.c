@@ -100,7 +100,6 @@ wrap_mmu_context (struct mm_struct *mm)
 		if (i != cpu)
 			per_cpu(ia64_need_tlb_flush, i) = 1;
 	put_cpu();
-	return; // XXX: Hacky fix BOU; skip tlb flush for debug
 	local_flush_tlb_all();
 }
 
@@ -348,7 +347,7 @@ EXPORT_SYMBOL(flush_tlb_range);
 
 void ia64_tlb_init(void)
 {
-	ia64_ptce_info_t ptce_info;
+	ia64_ptce_info_t uninitialized_var(ptce_info); /* GCC be quiet */
 	u64 tr_pgbits;
 	long status;
 	pal_vm_info_1_u_t vm_info_1;

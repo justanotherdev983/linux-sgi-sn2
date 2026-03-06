@@ -13,14 +13,6 @@
  *	David Mosberger-Tang <davidm@hpl.hp.com>
  */
 
-/*
-// XXX: Hacky; maybe circ dep? BOU fixme
-//struct percpu_rw_semaphore;
-#include <linux/rcuwait.h>
-#include <linux/sched/signal.h>
-#include <linux/percpu-rwsem.h>
-*/
-
 #include <asm/mman.h>
 #include <asm/page.h>
 #include <asm/processor.h>
@@ -196,7 +188,11 @@
 #define pmd_ERROR(e)	printk("%s:%d: bad pmd %016lx.\n", __FILE__, __LINE__, pmd_val(e))
 #define pte_ERROR(e)	printk("%s:%d: bad pte %016lx.\n", __FILE__, __LINE__, pte_val(e))
 
-#define pmd_pfn(pmd) page_to_pfn(pmd_page(pmd))
+
+/*
+ * Some definitions to translate between mem_map, PTEs, and page addresses:
+ */
+
 
 /* Quick test to see if ADDR is a (potentially) valid physical address. */
 static inline long
@@ -416,7 +412,7 @@ ptep_test_and_clear_young (struct vm_area_struct *vma, unsigned long addr, pte_t
 	pte_t pte = *ptep;
 	if (!pte_young(pte))
 		return 0;
-	set_pte(ptep, pte_mkold(pte));
+	set_pte_at(vma->vm_mm, addr, ptep, pte_mkold(pte));
 	return 1;
 #endif
 }
@@ -445,7 +441,7 @@ ptep_set_wrprotect(struct mm_struct *mm, unsigned long addr, pte_t *ptep)
 	} while (cmpxchg((unsigned long *) ptep, old, new) != old);
 #else
 	pte_t old_pte = *ptep;
-	set_pte(ptep, pte_wrprotect(old_pte));
+	set_pte_at(mm, addr, ptep, pte_wrprotect(old_pte));
 #endif
 }
 
@@ -455,8 +451,7 @@ pte_same (pte_t a, pte_t b)
 	return pte_val(a) == pte_val(b);
 }
 
-#define update_mmu_cache(vma, addr, ptep) do { } while (0)
-#define update_mmu_cache_range(vmf, vma, addr, ptep, nr) do { } while (0)
+#define update_mmu_cache(vma, address, ptep) do { } while (0)
 
 extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
 extern void paging_init (void);
@@ -535,17 +530,18 @@ extern struct page *zero_page_memmap_ptr;
 ({									\
 	int __changed = !pte_same(*(__ptep), __entry);			\
 	if (__changed) {						\
-		set_pte((__ptep), (__entry));	\
+		set_pte_at((__vma)->vm_mm, (__addr), __ptep, __entry);	\
 		flush_tlb_page(__vma, __addr);				\
 	}								\
 	__changed;							\
 })
 #endif
 
-static inline int pte_swp_exclusive(pte_t pte) { return 0; }
-static inline pte_t pte_swp_mkexclusive(pte_t pte) { return pte; }
-static inline pte_t pte_swp_clear_exclusive(pte_t pte) { return pte; }
-
+#  ifdef CONFIG_VIRTUAL_MEM_MAP
+  /* arch mem_map init routine is needed due to holes in a virtual mem_map */
+    extern void memmap_init (unsigned long size, int nid, unsigned long zone,
+			     unsigned long start_pfn);
+#  endif /* CONFIG_VIRTUAL_MEM_MAP */
 # endif /* !__ASSEMBLY__ */
 
 /*

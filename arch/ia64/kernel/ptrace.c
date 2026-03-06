@@ -23,7 +23,7 @@
 #include <linux/signal.h>
 #include <linux/regset.h>
 #include <linux/elf.h>
-#include <linux/resume_user_mode.h>
+#include <linux/tracehook.h>
 
 #include <asm/pgtable.h>
 #include <asm/processor.h>
@@ -645,11 +645,11 @@ ptrace_attach_sync_user_rbs (struct task_struct *child)
 	read_lock(&tasklist_lock);
 	if (child->sighand) {
 		spin_lock_irq(&child->sighand->siglock);
-		if (child->__state == TASK_STOPPED &&
+		if (child->state == TASK_STOPPED &&
 		    !test_and_set_tsk_thread_flag(child, TIF_RESTORE_RSE)) {
 			set_notify_resume(child);
 
-			child->__state = TASK_TRACED;
+			child->state = TASK_TRACED;
 			stopped = 1;
 		}
 		spin_unlock_irq(&child->sighand->siglock);
@@ -669,9 +669,9 @@ ptrace_attach_sync_user_rbs (struct task_struct *child)
 	read_lock(&tasklist_lock);
 	if (child->sighand) {
 		spin_lock_irq(&child->sighand->siglock);
-		if (child->__state == TASK_TRACED &&
+		if (child->state == TASK_TRACED &&
 		    (child->signal->flags & SIGNAL_STOP_STOPPED)) {
-			child->__state = TASK_STOPPED;
+			child->state = TASK_STOPPED;
 		}
 		spin_unlock_irq(&child->sighand->siglock);
 	}
@@ -1218,7 +1218,7 @@ syscall_trace_enter (long arg0, long arg1, long arg2, long arg3,
 		     struct pt_regs regs)
 {
 	if (test_thread_flag(TIF_SYSCALL_TRACE))
-		if (ptrace_report_syscall_entry(&regs))
+		if (tracehook_report_syscall_entry(&regs))
 			return -ENOSYS;
 
 	/* copy user rbs to kernel rbs */
@@ -1244,7 +1244,7 @@ syscall_trace_leave (long arg0, long arg1, long arg2, long arg3,
 
 	step = test_thread_flag(TIF_SINGLESTEP);
 	if (step || test_thread_flag(TIF_SYSCALL_TRACE))
-		ptrace_report_syscall_exit(&regs, step);
+		tracehook_report_syscall_exit(&regs, step);
 
 	/* copy user rbs to kernel rbs */
 	if (test_thread_flag(TIF_RESTORE_RSE))
@@ -1499,25 +1499,6 @@ access_elf_reg(struct task_struct *target, struct unw_frame_info *info,
 		return access_elf_areg(target, info, addr, data, write_access);
 }
 
-
-static void ia64_copyout(struct regset_getset *dst, const void *src, size_t sz)
-{
-	if (dst->u.get.kbuf) {
-		memcpy(dst->u.get.kbuf, src, sz);
-		dst->u.get.kbuf += sz;
-	}
-	dst->pos += sz;
-	dst->count -= sz;
-}
-static void ia64_copyout_zero(struct regset_getset *dst, size_t sz)
-{
-	if (dst->u.get.kbuf) {
-		memset(dst->u.get.kbuf, 0, sz);
-		dst->u.get.kbuf += sz;
-	}
-	dst->pos += sz;
-	dst->count -= sz;
-}
 void do_gpregs_get(struct unw_frame_info *info, void *arg)
 {
 	struct pt_regs *pt;
@@ -1542,7 +1523,10 @@ void do_gpregs_get(struct unw_frame_info *info, void *arg)
 
 	/* Skip r0 */
 	if (dst->count > 0 && dst->pos < ELF_GR_OFFSET(1)) {
-		dst->ret = ({ size_t _sz = ELF_GR_OFFSET(1) - 0; memset(dst->u.get.kbuf, 0, _sz); dst->pos += _sz; dst->count -= _sz; dst->u.get.kbuf += _sz; 0; });
+		dst->ret = user_regset_copyout_zero(&dst->pos, &dst->count,
+						      &dst->u.get.kbuf,
+						      &dst->u.get.ubuf,
+						      0, ELF_GR_OFFSET(1));
 		if (dst->ret || dst->count == 0)
 			return;
 	}
@@ -1559,7 +1543,9 @@ void do_gpregs_get(struct unw_frame_info *info, void *arg)
 				dst->ret = -EIO;
 				return;
 			}
-		ia64_copyout(dst, tmp, (ELF_GR_OFFSET(16) - (ELF_GR_OFFSET(1))));
+		dst->ret = user_regset_copyout(&dst->pos, &dst->count,
+				&dst->u.get.kbuf, &dst->u.get.ubuf, tmp,
+				ELF_GR_OFFSET(1), ELF_GR_OFFSET(16));
 		if (dst->ret || dst->count == 0)
 			return;
 	}
@@ -1567,7 +1553,9 @@ void do_gpregs_get(struct unw_frame_info *info, void *arg)
 	/* r16-r31 */
 	if (dst->count > 0 && dst->pos < ELF_NAT_OFFSET) {
 		pt = task_pt_regs(dst->target);
-		ia64_copyout(dst, &pt->r16, (ELF_NAT_OFFSET) - (ELF_GR_OFFSET(16)));
+		dst->ret = user_regset_copyout(&dst->pos, &dst->count,
+				&dst->u.get.kbuf, &dst->u.get.ubuf, &pt->r16,
+				ELF_GR_OFFSET(16), ELF_NAT_OFFSET);
 		if (dst->ret || dst->count == 0)
 			return;
 	}
@@ -1584,7 +1572,9 @@ void do_gpregs_get(struct unw_frame_info *info, void *arg)
 				dst->ret = -EIO;
 				return;
 			}
-		ia64_copyout(dst, tmp, (ELF_CR_IIP_OFFSET) - (ELF_NAT_OFFSET));
+		dst->ret = user_regset_copyout(&dst->pos, &dst->count,
+				&dst->u.get.kbuf, &dst->u.get.ubuf, tmp,
+				ELF_NAT_OFFSET, ELF_CR_IIP_OFFSET);
 		if (dst->ret || dst->count == 0)
 			return;
 	}
@@ -1603,7 +1593,9 @@ void do_gpregs_get(struct unw_frame_info *info, void *arg)
 				dst->ret = -EIO;
 				return;
 			}
-		ia64_copyout(dst, tmp, (ELF_AR_END_OFFSET) - (ELF_CR_IIP_OFFSET));
+		dst->ret = user_regset_copyout(&dst->pos, &dst->count,
+				&dst->u.get.kbuf, &dst->u.get.ubuf, tmp,
+				ELF_CR_IIP_OFFSET, ELF_AR_END_OFFSET);
 	}
 }
 
@@ -1619,10 +1611,10 @@ void do_gpregs_set(struct unw_frame_info *info, void *arg)
 
 	/* Skip r0 */
 	if (dst->count > 0 && dst->pos < ELF_GR_OFFSET(1)) {
-		user_regset_copyin_ignore(&dst->pos, &dst->count,
+		dst->ret = user_regset_copyin_ignore(&dst->pos, &dst->count,
 						       &dst->u.set.kbuf,
 						       &dst->u.set.ubuf,
-						       0, ELF_GR_OFFSET(1)); dst->ret = 0;
+						       0, ELF_GR_OFFSET(1));
 		if (dst->ret || dst->count == 0)
 			return;
 	}
@@ -1709,7 +1701,10 @@ void do_fpregs_get(struct unw_frame_info *info, void *arg)
 
 	/* Skip pos 0 and 1 */
 	if (dst->count > 0 && dst->pos < ELF_FP_OFFSET(2)) {
-		dst->ret = ({ size_t _sz = ELF_FP_OFFSET(2) - 0; memset(dst->u.get.kbuf, 0, _sz); dst->pos += _sz; dst->count -= _sz; dst->u.get.kbuf += _sz; 0; });
+		dst->ret = user_regset_copyout_zero(&dst->pos, &dst->count,
+						      &dst->u.get.kbuf,
+						      &dst->u.get.ubuf,
+						      0, ELF_FP_OFFSET(2));
 		if (dst->count == 0 || dst->ret)
 			return;
 	}
@@ -1727,7 +1722,9 @@ void do_fpregs_get(struct unw_frame_info *info, void *arg)
 				dst->ret = -EIO;
 				return;
 			}
-		ia64_copyout(dst, tmp, (ELF_FP_OFFSET(32) - (ELF_FP_OFFSET(2))));
+		dst->ret = user_regset_copyout(&dst->pos, &dst->count,
+				&dst->u.get.kbuf, &dst->u.get.ubuf, tmp,
+				ELF_FP_OFFSET(2), ELF_FP_OFFSET(32));
 		if (dst->count == 0 || dst->ret)
 			return;
 	}
@@ -1736,11 +1733,17 @@ void do_fpregs_get(struct unw_frame_info *info, void *arg)
 	if (dst->count > 0) {
 		ia64_flush_fph(dst->target);
 		if (task->thread.flags & IA64_THREAD_FPH_VALID)
-			ia64_copyout(dst, &dst->target->thread.fph, dst->count); 	
+			dst->ret = user_regset_copyout(
+				&dst->pos, &dst->count,
+				&dst->u.get.kbuf, &dst->u.get.ubuf,
+				&dst->target->thread.fph,
+				ELF_FP_OFFSET(32), -1);
 		else
-
 			/* Zero fill instead.  */
-			;
+			dst->ret = user_regset_copyout_zero(
+				&dst->pos, &dst->count,
+				&dst->u.get.kbuf, &dst->u.get.ubuf,
+				ELF_FP_OFFSET(32), -1);
 	}
 }
 
@@ -1755,10 +1758,10 @@ void do_fpregs_set(struct unw_frame_info *info, void *arg)
 
 	/* Skip pos 0 and 1 */
 	if (dst->count > 0 && dst->pos < ELF_FP_OFFSET(2)) {
-		user_regset_copyin_ignore(&dst->pos, &dst->count,
+		dst->ret = user_regset_copyin_ignore(&dst->pos, &dst->count,
 						       &dst->u.set.kbuf,
 						       &dst->u.set.ubuf,
-						       0, ELF_FP_OFFSET(2)); dst->ret = 0;
+						       0, ELF_FP_OFFSET(2));
 		if (dst->count == 0 || dst->ret)
 			return;
 	}
@@ -1841,30 +1844,22 @@ do_regset_call(void (*call)(struct unw_frame_info *, void *),
 	return info.ret;
 }
 
+static int
+gpregs_get(struct task_struct *target,
+	   const struct user_regset *regset,
+	   unsigned int pos, unsigned int count,
+	   void *kbuf, void __user *ubuf)
+{
+	return do_regset_call(do_gpregs_get, target, regset, pos, count,
+		kbuf, ubuf);
+}
+
 static int gpregs_set(struct task_struct *target,
 		const struct user_regset *regset,
 		unsigned int pos, unsigned int count,
 		const void *kbuf, const void __user *ubuf)
 {
 	return do_regset_call(do_gpregs_set, target, regset, pos, count,
-		kbuf, ubuf);
-}
-
-static int
-gpregs_get(struct task_struct *target,
-	  const struct user_regset *regset,
-	  struct membuf to)
-{
-	return do_regset_call(do_gpregs_get, target, regset,
-		0, to.left, to.p, NULL);
-}
-
-static int gpregs_get_legacy(struct task_struct *target,
-	  const struct user_regset *regset,
-	  unsigned int pos, unsigned int count,
-	  void *kbuf, void __user *ubuf)
-{
-	return do_regset_call(do_gpregs_get, target, regset, pos, count,
 		kbuf, ubuf);
 }
 
@@ -1897,15 +1892,6 @@ fpregs_active(struct task_struct *target, const struct user_regset *regset)
 }
 
 static int fpregs_get(struct task_struct *target,
-		const struct user_regset *regset,
-		struct membuf to)
-{
-	return do_regset_call(do_fpregs_get, target, regset,
-		0, to.left, to.p, NULL);
-}
-
-/* legacy wrapper for access_uarea */
-static int fpregs_get_legacy(struct task_struct *target,
 		const struct user_regset *regset,
 		unsigned int pos, unsigned int count,
 		void *kbuf, void __user *ubuf)
@@ -1964,7 +1950,7 @@ access_uarea(struct task_struct *child, unsigned long addr,
 			ret = fpregs_set(child, NULL, pos,
 				sizeof(unsigned long), data, NULL);
 		else
-			ret = fpregs_get_legacy(child, NULL, pos,
+			ret = fpregs_get(child, NULL, pos,
 				sizeof(unsigned long), data, NULL);
 		if (ret != 0)
 			return -1;
@@ -2057,7 +2043,7 @@ access_uarea(struct task_struct *child, unsigned long addr,
 			ret = gpregs_set(child, NULL, pos,
 				sizeof(unsigned long), data, NULL);
 		else
-			ret = gpregs_get_legacy(child, NULL, pos,
+			ret = gpregs_get(child, NULL, pos,
 				sizeof(unsigned long), data, NULL);
 		if (ret != 0)
 			return -1;
@@ -2127,14 +2113,14 @@ static const struct user_regset native_regsets[] = {
 		.core_note_type = NT_PRSTATUS,
 		.n = ELF_NGREG,
 		.size = sizeof(elf_greg_t), .align = sizeof(elf_greg_t),
-		.regset_get = gpregs_get, .set = gpregs_set,
+		.get = gpregs_get, .set = gpregs_set,
 		.writeback = gpregs_writeback
 	},
 	{
 		.core_note_type = NT_PRFPREG,
 		.n = ELF_NFPREG,
 		.size = sizeof(elf_fpreg_t), .align = sizeof(elf_fpreg_t),
-		.regset_get = fpregs_get, .set = fpregs_set, .active = fpregs_active
+		.get = fpregs_get, .set = fpregs_set, .active = fpregs_active
 	},
 };
 

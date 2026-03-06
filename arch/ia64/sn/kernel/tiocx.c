@@ -6,7 +6,6 @@
  * Copyright (c) 2005 Silicon Graphics, Inc.  All rights reserved.
  */
 
-#include <linux/compiler.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
@@ -24,9 +23,9 @@
 #include <asm/sn/tiocx.h>
 #include <asm/sn/l1.h>
 #include <asm/sn/module.h>
-#include "../include/tio.h"
-#include "../include/xtalk/xwidgetdev.h"
-#include "../include/xtalk/hubdev.h"
+#include "tio.h"
+#include "xtalk/xwidgetdev.h"
+#include "xtalk/hubdev.h"
 
 #define CX_DEV_NONE 0
 #define DEVICE_NAME "tiocx"
@@ -48,7 +47,7 @@ struct device_attribute dev_attr_cxdev_control;
  *
  * Returns 1 if match, 0 otherwise.
  */
-static int tiocx_match(struct device *dev, const struct device_driver *drv)
+static int tiocx_match(struct device *dev, struct device_driver *drv)
 {
 	struct cx_dev *cx_dev = to_cx_dev(dev);
 	struct cx_drv *cx_drv = to_cx_driver(drv);
@@ -66,7 +65,7 @@ static int tiocx_match(struct device *dev, const struct device_driver *drv)
 
 }
 
-static int tiocx_uevent(const struct device *dev, struct kobj_uevent_env *env)
+static int tiocx_uevent(struct device *dev, struct kobj_uevent_env *env)
 {
 	return -ENODEV;
 }
@@ -132,13 +131,14 @@ static int cx_device_probe(struct device *dev)
  * cx_driver_remove - Remove driver from device struct.
  * @dev: device
  */
-static void cx_driver_remove(struct device *dev)
+static int cx_driver_remove(struct device *dev)
 {
 	struct cx_dev *cx_dev = to_cx_dev(dev);
 	struct cx_drv *cx_drv = cx_dev->driver;
 	if (cx_drv->remove)
 		cx_drv->remove(cx_dev);
 	cx_dev->driver = NULL;
+	return 0;
 }
 
 struct bus_type tiocx_bus_type = {
@@ -371,7 +371,7 @@ static void tio_corelet_reset(nasid_t nasid, int corelet)
 
 static int is_fpga_tio(int nasid, int *bt)
 {
-	u16 ioboard_type;
+	u16 uninitialized_var(ioboard_type);	/* GCC be quiet */
 	long rc;
 
 	rc = ia64_sn_sysctl_ioboard_get(nasid, &ioboard_type);
@@ -566,3 +566,4 @@ module_exit(tiocx_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Bruce Losure <blosure@sgi.com>");
 MODULE_DESCRIPTION("TIOCX module");
+MODULE_SUPPORTED_DEVICE(DEVICE_NAME);

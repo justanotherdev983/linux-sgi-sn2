@@ -20,7 +20,6 @@
 #include <linux/interrupt.h>
 #include <linux/efi.h>
 #include <linux/timex.h>
-#include "../../../kernel/time/timekeeping.h"
 #include <linux/timekeeper_internal.h>
 #include <linux/platform_device.h>
 #include <linux/sched/cputime.h>
@@ -183,7 +182,7 @@ timer_interrupt (int irq, void *dev_id)
 		new_itm += local_cpu_data->itm_delta;
 
 		if (smp_processor_id() == time_keeper_id)
-			do_timer(1);
+			xtime_update(1);
 
 		local_cpu_data->itm_next = new_itm;
 
@@ -392,7 +391,7 @@ static struct irqaction timer_irqaction = {
 
 void read_persistent_clock64(struct timespec64 *ts)
 {
-	(*efi.get_time)((efi_time_t *)ts, NULL);
+	efi_gettimeofday(ts);
 }
 
 void __init
