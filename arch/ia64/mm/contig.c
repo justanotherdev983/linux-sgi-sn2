@@ -20,7 +20,6 @@
 #include <linux/nmi.h>
 #include <linux/swap.h>
 
-#include <asm/efi.h>
 #include <asm/meminit.h>
 #include <asm/pgalloc.h>
 #include <asm/pgtable.h>
@@ -30,14 +29,6 @@
 #ifdef CONFIG_VIRTUAL_MEM_MAP
 static unsigned long max_gap;
 #endif
-
-/* Helper to bridge EFI memory walk to memblock */
-static int __init
-memblock_add_node_shim(u64 start, u64 end, void *arg)
-{
-	memblock_add_node(start, end, (unsigned long)arg, MEMBLOCK_NONE);
-	return 0;
-}
 
 /* physical address where the bootmem map is located */
 unsigned long bootmap_start;
@@ -117,6 +108,7 @@ setup_per_cpu_areas(void)
 	struct pcpu_group_info *gi;
 	unsigned int cpu;
 	ssize_t static_size, reserved_size, dyn_size;
+	int rc;
 
 	ai = pcpu_alloc_alloc_info(1, num_possible_cpus());
 	if (!ai)
@@ -142,7 +134,9 @@ setup_per_cpu_areas(void)
 	ai->atom_size		= PAGE_SIZE;
 	ai->alloc_size		= PERCPU_PAGE_SIZE;
 
-	pcpu_setup_first_chunk(ai, __per_cpu_start + __per_cpu_offset[0]);
+	rc = pcpu_setup_first_chunk(ai, __per_cpu_start + __per_cpu_offset[0]);
+	if (rc)
+		panic("failed to setup percpu area (err=%d)", rc);
 
 	pcpu_free_alloc_info(ai);
 }
@@ -168,9 +162,9 @@ find_memory (void)
 	max_pfn = max_low_pfn;
 
 #ifdef CONFIG_VIRTUAL_MEM_MAP
-	efi_memmap_walk(filter_memory, memblock_add_node_shim);
+	efi_memmap_walk(filter_memory, register_active_ranges);
 #else
-	memblock_add_node(0, PFN_PHYS(max_low_pfn), 0, MEMBLOCK_NONE);
+	memblock_add_node(0, PFN_PHYS(max_low_pfn), 0);
 #endif
 
 	find_initrd();
@@ -196,61 +190,30 @@ paging_init (void)
 	max_zone_pfns[ZONE_NORMAL] = max_low_pfn;
 
 #ifdef CONFIG_VIRTUAL_MEM_MAP
-
-	{
-		struct memblock_region *r;
-		phys_addr_t prev_end = 0;
-
-		for_each_mem_region(r) {
-			if (r->base - prev_end > max_gap)
-				max_gap = r->base - prev_end;
-			prev_end = r->base + r->size;
-		}
-	}
-
+	efi_memmap_walk(find_largest_hole, (u64 *)&max_gap);
 	if (max_gap < LARGE_GAP) {
 		vmem_map = (struct page *) 0;
 	} else {
 		unsigned long map_size;
-		struct memblock_region *r;
+
+		/* allocate virtual_mem_map */
 
 		map_size = PAGE_ALIGN(ALIGN(max_low_pfn, MAX_ORDER_NR_PAGES) *
 			sizeof(struct page));
 		VMALLOC_END -= map_size;
 		vmem_map = (struct page *) VMALLOC_END;
+		efi_memmap_walk(create_mem_map_page_table, NULL);
 
-		{
-			u64 start = PAGE_OFFSET;  // pfn 0
-			u64 end   = PAGE_OFFSET + (ALIGN(max_low_pfn, MAX_ORDER_NR_PAGES)
-							<< PAGE_SHIFT);
-			create_mem_map_page_table(start, end, NULL);
-		}
+		/*
+		 * alloc_node_mem_map makes an adjustment for mem_map
+		 * which isn't compatible with vmem_map.
+		 */
+		NODE_DATA(0)->node_mem_map = vmem_map +
+			find_min_pfn_with_active_regions();
 
-		NODE_DATA(0)->node_mem_map = vmem_map;
-		printk(KERN_INFO "Virtual mem_map starts at 0x%px\n", vmem_map);
-
-		/* Reserve pfns [0, min_low_pfn) in memblock so
-		 * memblock_free_all() never frees them. Their struct
-		 * pages exist in vmem_map but have no physical memory. */
-		if (min_low_pfn > 0)
-			memblock_reserve(0, min_low_pfn << PAGE_SHIFT);
-		/* Reserve holes between memblock regions so buddy never gets
-		 * uninitialized vmem_map pages for hole pfns */
-		{
-			struct memblock_region *r;
-			phys_addr_t prev_end = 0;
-			for_each_mem_region(r) {
-				if (r->base > prev_end)
-					memblock_reserve(prev_end, r->base - prev_end);
-				prev_end = r->base + r->size;
-			}
-			if (prev_end < ((phys_addr_t)max_low_pfn << PAGE_SHIFT))
-				memblock_reserve(prev_end,
-					((phys_addr_t)max_low_pfn << PAGE_SHIFT) - prev_end);
-		}
+		printk("Virtual mem_map starts at 0x%p\n", mem_map);
 	}
-
 #endif /* !CONFIG_VIRTUAL_MEM_MAP */
-	free_area_init(max_zone_pfns);
+	free_area_init_nodes(max_zone_pfns);
 	zero_page_memmap_ptr = virt_to_page(ia64_imva(empty_zero_page));
 }

@@ -8,7 +8,7 @@
 # Copyright (C) 1998, 2003 by David Mosberger-Tang <davidm@hpl.hp.com>
 #
 
-targets-y  += bootloader
+targets-$(CONFIG_IA64_HP_SIM)  += bootloader
 targets := vmlinux.bin vmlinux.gz $(targets-y)
 
 quiet_cmd_cptotop = LN      $@
@@ -33,6 +33,5 @@ $(obj)/vmlinux.bin: vmlinux FORCE
 LDFLAGS_bootloader = -static -T
 
 $(obj)/bootloader: $(src)/bootloader.lds $(obj)/bootloader.o $(obj)/boot_head.o $(obj)/fw-emu.o \
-								$(obj)/bootloader-stubs.o \
                    lib/lib.a arch/ia64/lib/lib.a FORCE
 	$(call if_changed,ld)

@@ -26,7 +26,6 @@
 #include <asm/processor.h>
 #include <asm/sal.h>
 #include <asm/mca.h>
-extern void *efi_get_pal_addr(void);
 
 typedef void (*relocate_new_kernel_t)(
 					unsigned long indirection_page,

@@ -397,12 +397,6 @@ ia64_sal_freq_base (unsigned long which, unsigned long *ticks_per_second,
 {
 	struct ia64_sal_retval isrv;
 
-	if (ia64_platform_is("hpsim")) {
-		*ticks_per_second = 100000000UL;
-		*drift_info = 0;
-		return 0;
-	}
-
 	SAL_CALL(isrv, SAL_FREQ_BASE, which, 0, 0, 0, 0, 0, 0);
 	*ticks_per_second = isrv.v0;
 	*drift_info = isrv.v1;

@@ -116,12 +116,12 @@ static int rs_put_char(struct tty_struct *tty, unsigned char ch)
 		return 0;
 
 	local_irq_save(flags);
-	if (CIRC_SPACE(info->xmit.head, info->xmit.tail, PAGE_SIZE) == 0) {
+	if (CIRC_SPACE(info->xmit.head, info->xmit.tail, SERIAL_XMIT_SIZE) == 0) {
 		local_irq_restore(flags);
 		return 0;
 	}
 	info->xmit.buf[info->xmit.head] = ch;
-	info->xmit.head = (info->xmit.head + 1) & (PAGE_SIZE-1);
+	info->xmit.head = (info->xmit.head + 1) & (SERIAL_XMIT_SIZE-1);
 	local_irq_restore(flags);
 	return 1;
 }
@@ -144,10 +144,10 @@ static void transmit_chars(struct tty_struct *tty, struct serial_state *info,
 		goto out;
 	}
 
-	if (info->xmit.head == info->xmit.tail || tty->hw_stopped) {
+	if (info->xmit.head == info->xmit.tail || tty->stopped) {
 #ifdef SIMSERIAL_DEBUG
 		printk("transmit_chars: head=%d, tail=%d, stopped=%d\n",
-		       info->xmit.head, info->xmit.tail, tty->hw_stopped);
+		       info->xmit.head, info->xmit.tail, tty->stopped);
 #endif
 		goto out;
 	}
@@ -159,16 +159,16 @@ static void transmit_chars(struct tty_struct *tty, struct serial_state *info,
 	 * Then from the beginning of the buffer until necessary
 	 */
 
-	count = min(CIRC_CNT(info->xmit.head, info->xmit.tail, PAGE_SIZE),
-		    PAGE_SIZE - info->xmit.tail);
+	count = min(CIRC_CNT(info->xmit.head, info->xmit.tail, SERIAL_XMIT_SIZE),
+		    SERIAL_XMIT_SIZE - info->xmit.tail);
 	console->write(console, info->xmit.buf+info->xmit.tail, count);
 
-	info->xmit.tail = (info->xmit.tail+count) & (PAGE_SIZE-1);
+	info->xmit.tail = (info->xmit.tail+count) & (SERIAL_XMIT_SIZE-1);
 
 	/*
 	 * We have more at the beginning of the buffer
 	 */
-	count = CIRC_CNT(info->xmit.head, info->xmit.tail, PAGE_SIZE);
+	count = CIRC_CNT(info->xmit.head, info->xmit.tail, SERIAL_XMIT_SIZE);
 	if (count) {
 		console->write(console, info->xmit.buf, count);
 		info->xmit.tail += count;
@@ -181,15 +181,15 @@ static void rs_flush_chars(struct tty_struct *tty)
 {
 	struct serial_state *info = tty->driver_data;
 
-	if (info->xmit.head == info->xmit.tail || tty->hw_stopped ||
+	if (info->xmit.head == info->xmit.tail || tty->stopped ||
 			!info->xmit.buf)
 		return;
 
 	transmit_chars(tty, info, NULL);
 }
 
-static ssize_t rs_write(struct tty_struct *tty,
-		    const u8 *buf, size_t count)
+static int rs_write(struct tty_struct * tty,
+		    const unsigned char *buf, int count)
 {
 	struct serial_state *info = tty->driver_data;
 	int	c, ret = 0;
@@ -200,7 +200,7 @@ static ssize_t rs_write(struct tty_struct *tty,
 
 	local_irq_save(flags);
 	while (1) {
-		c = CIRC_SPACE_TO_END(info->xmit.head, info->xmit.tail, PAGE_SIZE);
+		c = CIRC_SPACE_TO_END(info->xmit.head, info->xmit.tail, SERIAL_XMIT_SIZE);
 		if (count < c)
 			c = count;
 		if (c <= 0) {
@@ -208,7 +208,7 @@ static ssize_t rs_write(struct tty_struct *tty,
 		}
 		memcpy(info->xmit.buf + info->xmit.head, buf, c);
 		info->xmit.head = ((info->xmit.head + c) &
-				   (PAGE_SIZE-1));
+				   (SERIAL_XMIT_SIZE-1));
 		buf += c;
 		count -= c;
 		ret += c;
@@ -217,25 +217,25 @@ static ssize_t rs_write(struct tty_struct *tty,
 	/*
 	 * Hey, we transmit directly from here in our case
 	 */
-	if (CIRC_CNT(info->xmit.head, info->xmit.tail, PAGE_SIZE) &&
-			!tty->hw_stopped)
+	if (CIRC_CNT(info->xmit.head, info->xmit.tail, SERIAL_XMIT_SIZE) &&
+			!tty->stopped)
 		transmit_chars(tty, info, NULL);
 
 	return ret;
 }
 
-static unsigned int rs_write_room(struct tty_struct *tty)
+static int rs_write_room(struct tty_struct *tty)
 {
 	struct serial_state *info = tty->driver_data;
 
-	return CIRC_SPACE(info->xmit.head, info->xmit.tail, PAGE_SIZE);
+	return CIRC_SPACE(info->xmit.head, info->xmit.tail, SERIAL_XMIT_SIZE);
 }
 
-static unsigned int rs_chars_in_buffer(struct tty_struct *tty)
+static int rs_chars_in_buffer(struct tty_struct *tty)
 {
 	struct serial_state *info = tty->driver_data;
 
-	return CIRC_CNT(info->xmit.head, info->xmit.tail, PAGE_SIZE);
+	return CIRC_CNT(info->xmit.head, info->xmit.tail, SERIAL_XMIT_SIZE);
 }
 
 static void rs_flush_buffer(struct tty_struct *tty)
@@ -254,7 +254,7 @@ static void rs_flush_buffer(struct tty_struct *tty)
  * This function is used to send a high-priority XON/XOFF character to
  * the device
  */
-static void rs_send_xchar(struct tty_struct *tty, u8 ch)
+static void rs_send_xchar(struct tty_struct *tty, char ch)
 {
 	struct serial_state *info = tty->driver_data;
 
@@ -405,6 +405,17 @@ static int rs_open(struct tty_struct *tty, struct file * filp)
 	struct serial_state *info = rs_table + tty->index;
 	struct tty_port *port = &info->port;
 
+	tty->driver_data = info;
+	port->low_latency = (port->flags & ASYNC_LOW_LATENCY) ? 1 : 0;
+
+	/*
+	 * figure out which console to use (should be one already)
+	 */
+	console = console_drivers;
+	while (console) {
+		if ((console->flags & CON_ENABLED) && console->write) break;
+		console = console->next;
+	}
 
 	return tty_port_open(port, tty, filp);
 }
@@ -456,7 +467,7 @@ static int __init simrs_init(void)
 	if (!ia64_platform_is("hpsim"))
 		return -ENODEV;
 
-	hp_simserial_driver = tty_alloc_driver(NR_PORTS, 0);
+	hp_simserial_driver = alloc_tty_driver(NR_PORTS);
 	if (!hp_simserial_driver)
 		return -ENOMEM;
 
@@ -502,7 +513,7 @@ static int __init simrs_init(void)
 
 	return 0;
 err_free_tty:
-	tty_driver_kref_put(hp_simserial_driver);
+	put_tty_driver(hp_simserial_driver);
 	tty_port_destroy(&state->port);
 	return retval;
 }

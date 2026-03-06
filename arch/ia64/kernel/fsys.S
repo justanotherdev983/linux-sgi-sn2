@@ -65,7 +65,7 @@ ENTRY(fsys_getpid)
 	add r17=IA64_TASK_SIGNAL_OFFSET,r16
 	;;
 	ld8 r17=[r17]				// r17 = current->signal
-	add r9=TASK_TI_FLAGS,r16
+	add r9=TI_FLAGS+IA64_TASK_SIZE,r16
 	;;
 	ld4 r9=[r9]
 	add r17=IA64_SIGNAL_PIDS_TGID_OFFSET,r17
@@ -95,7 +95,7 @@ ENTRY(fsys_set_tid_address)
 	.prologue
 	.altrp b6
 	.body
-	add r9=TASK_TI_FLAGS,r16
+	add r9=TI_FLAGS+IA64_TASK_SIZE,r16
 	add r17=IA64_TASK_THREAD_PID_OFFSET,r16
 	;;
 	ld4 r9=[r9]
@@ -191,7 +191,7 @@ ENTRY(fsys_gettimeofday)
 	// process two bundles simultaneously and therefore we continuously
 	// try to feed the CPU two bundles and then a stop.
 
-	add r2 = TASK_TI_FLAGS,r16
+	add r2 = TI_FLAGS+IA64_TASK_SIZE,r16
 	tnat.nz p6,p0 = r31		// guard against Nat argument
 (p6)	br.cond.spnt.few .fail_einval
 	movl r20 = fsyscall_gtod_data // load fsyscall gettimeofday data address
@@ -334,7 +334,7 @@ ENTRY(fsys_getcpu)
 	.altrp b6
 	.body
 	;;
-	add r2=TASK_TI_FLAGS,r16
+	add r2=TI_FLAGS+IA64_TASK_SIZE,r16
 	tnat.nz p6,p0 = r32			// guard against NaT argument
 	add r3=TI_CPU+IA64_TASK_SIZE,r16
 	;;
@@ -476,7 +476,7 @@ GLOBAL_ENTRY(fsys_bubble_down)
 	;;
 	st1 [r16]=r0				// M2|3 clear current->thread.on_ustack flag
 	addl r22=IA64_RBS_OFFSET,r2		// A    compute base of RBS
-	add r3=TASK_TI_FLAGS,r2	// A
+	add r3=TI_FLAGS+IA64_TASK_SIZE,r2	// A
 	;;
 	ld4 r3=[r3]				// M0|1 r3 = current_thread_info()->flags
 	lfetch.fault.excl.nt1 [r22]		// M0|1 prefetch register backing-store

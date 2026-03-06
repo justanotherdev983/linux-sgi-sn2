@@ -97,11 +97,6 @@ do {						\
 
 #ifdef CONFIG_VIRTUAL_MEM_MAP
 extern int ia64_pfn_valid (unsigned long pfn);
-# define pfn_valid(pfn)	((pfn) < max_mapnr && ia64_pfn_valid(pfn))
-# define __page_to_pfn(page)	((unsigned long) (page - vmem_map))
-# define __pfn_to_page(pfn)	(vmem_map + (pfn))
-# define page_to_pfn(page)	__page_to_pfn(page)
-# define pfn_to_page(pfn)	__pfn_to_page(pfn)
 #else
 # define ia64_pfn_valid(pfn) 1
 #endif
@@ -116,12 +111,13 @@ extern unsigned long max_low_pfn;
 
 #ifdef CONFIG_VIRTUAL_MEM_MAP
 extern struct page *vmem_map;
-# define __page_to_pfn(page)	((unsigned long) (page - vmem_map))
-# define __pfn_to_page(pfn)	(vmem_map + (pfn))
 #ifdef CONFIG_DISCONTIGMEM
+# define page_to_pfn(page)	((unsigned long) (page - vmem_map))
+# define pfn_to_page(pfn)	(vmem_map + (pfn))
 # define __pfn_to_phys(pfn)	PFN_PHYS(pfn)
-#endif
+#else
 # include <asm-generic/memory_model.h>
+#endif
 #else
 # include <asm-generic/memory_model.h>
 #endif

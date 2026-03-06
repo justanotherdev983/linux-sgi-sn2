@@ -32,7 +32,7 @@
 #include <linux/delay.h>
 #include <linux/kdebug.h>
 #include <linux/utsname.h>
-#include <linux/resume_user_mode.h>
+#include <linux/tracehook.h>
 #include <linux/rcupdate.h>
 
 #include <asm/cpu.h>
@@ -84,7 +84,7 @@ ia64_do_show_stack (struct unw_frame_info *info, void *arg)
 }
 
 void
-show_stack(struct task_struct *task, unsigned long *sp, const char *loglvl)
+show_stack (struct task_struct *task, unsigned long *sp)
 {
 	if (!task)
 		unw_init_running(ia64_do_show_stack, NULL);
@@ -150,7 +150,7 @@ show_regs (struct pt_regs *regs)
 			       ((i == sof - 1) || (i % 3) == 2) ? "\n" : " ");
 		}
 	} else
-		show_stack(NULL, NULL, KERN_DEFAULT);
+		show_stack(NULL, NULL);
 }
 
 /* local support for deprecated console_print */
@@ -190,7 +190,7 @@ do_notify_resume_user(sigset_t *unused, struct sigscratch *scr, long in_syscall)
 
 	if (test_and_clear_thread_flag(TIF_NOTIFY_RESUME)) {
 		local_irq_enable();	/* force interrupt enable */
-		resume_user_mode_work(&scr->pt);
+		tracehook_notify_resume(&scr->pt);
 	}
 
 	/* copy user rbs to kernel rbs */
@@ -332,12 +332,10 @@ ia64_load_extra (struct task_struct *task)
  * so there is nothing to worry about.
  */
 int
-copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
+copy_thread(unsigned long clone_flags,
+	     unsigned long user_stack_base, unsigned long user_stack_size,
+	     struct task_struct *p)
 {
-	unsigned long clone_flags = args->flags;
-	unsigned long user_stack_base = args->stack;
-	unsigned long user_stack_size = args->stack_size;
-
 	extern char ia64_ret_from_clone;
 	struct switch_stack *child_stack, *stack;
 	unsigned long rbs, child_rbs, rbs_size;
@@ -379,7 +377,6 @@ copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
 	ia64_drop_fpu(p);	/* don't pick up stale state from a CPU's fph */
 
 	if (unlikely(p->flags & PF_KTHREAD)) {
-		/* user_mode_thread called from swapper has no valid user pt_regs */
 		if (unlikely(!user_stack_base)) {
 			/* fork_idle() called us */
 			return 0;
@@ -410,24 +407,6 @@ copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
 
 		return 0;
 	}
-	/* user_mode_thread called from swapper has no valid user pt_regs */
-	if (unlikely(current->pid == 0 && !(p->flags & PF_KTHREAD))) {
-		memset(child_stack, 0, sizeof(*child_ptregs) + sizeof(*child_stack));
-		child_ptregs->cr_ipsr = ia64_getreg(_IA64_REG_PSR) | IA64_PSR_BN;
-		child_ptregs->cr_ifs = 1UL << 63;
-		child_stack->ar_fpsr = child_ptregs->ar_fpsr = ia64_getreg(_IA64_REG_AR_FPSR);
-		child_stack->pr = (1 << PRED_KERNEL_STACK);
-		child_stack->ar_bspstore = child_rbs;
-		child_stack->b0 = (unsigned long) &ia64_ret_from_clone;
-		child_ptregs->cr_ipsr = ((child_ptregs->cr_ipsr | IA64_PSR_BITS_TO_SET)
-			& ~(IA64_PSR_BITS_TO_CLEAR | IA64_PSR_PP | IA64_PSR_UP));
-		/* Set up kernel_init function and argument */
-		child_stack->r4 = (unsigned long) args->fn;
-		child_stack->r5 = (unsigned long) args->fn_arg;
-
-		return 0;
-	}
-
 	stack = ((struct switch_stack *) regs) - 1;
 	/* copy parent's switch_stack & pt_regs to child: */
 	memcpy(child_stack, stack, sizeof(*child_ptregs) + sizeof(*child_stack));
@@ -465,7 +444,7 @@ static void
 do_copy_task_regs (struct task_struct *task, struct unw_frame_info *info, void *arg)
 {
 	unsigned long mask, sp, nat_bits = 0, ar_rnat, urbs_end, cfm;
-	unsigned long ip;
+	unsigned long uninitialized_var(ip);	/* GCC be quiet */
 	elf_greg_t *dst = arg;
 	struct pt_regs *pt;
 	char nat;
@@ -611,13 +590,14 @@ exit_thread (struct task_struct *tsk)
 #endif
 }
 
-unsigned long __get_wchan(struct task_struct *p)
+unsigned long
+get_wchan (struct task_struct *p)
 {
 	struct unw_frame_info info;
 	unsigned long ip;
 	int count = 0;
 
-	if (!p || p == current || p->__state == TASK_RUNNING)
+	if (!p || p == current || p->state == TASK_RUNNING)
 		return 0;
 
 	/*
@@ -630,7 +610,7 @@ unsigned long __get_wchan(struct task_struct *p)
 	 */
 	unw_init_from_blocked_task(&info, p);
 	do {
-		if (p->__state == TASK_RUNNING)
+		if (p->state == TASK_RUNNING)
 			return 0;
 		if (unw_unwind(&info) < 0)
 			return 0;
@@ -671,8 +651,7 @@ void machine_shutdown(void)
 
 	for_each_online_cpu(cpu) {
 		if (cpu != smp_processor_id())
-			/* cpu_down removed */
-			; // XXX: Hacky fix; cant we just keep it empty? BOU
+			cpu_down(cpu);
 	}
 #endif
 #ifdef CONFIG_KEXEC

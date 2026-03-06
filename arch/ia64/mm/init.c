@@ -6,12 +6,11 @@
  *	David Mosberger-Tang <davidm@hpl.hp.com>
  */
 #include <linux/kernel.h>
-#include <asm/meminit.h>
 #include <linux/init.h>
 
+#include <linux/dma-noncoherent.h>
 #include <linux/efi.h>
 #include <linux/elf.h>
-#include <linux/uaccess.h>
 #include <linux/memblock.h>
 #include <linux/mm.h>
 #include <linux/sched/signal.h>
@@ -25,7 +24,6 @@
 #include <linux/bitops.h>
 #include <linux/kexec.h>
 
-#include <asm/efi.h>
 #include <asm/dma.h>
 #include <asm/io.h>
 #include <asm/machvec.h>
@@ -35,35 +33,11 @@
 #include <asm/sal.h>
 #include <asm/sections.h>
 #include <asm/tlb.h>
+#include <linux/uaccess.h>
 #include <asm/unistd.h>
 #include <asm/mca.h>
-pgprot_t protection_map[16] __ro_after_init = {
-	[VM_NONE]					= PAGE_NONE,
-	[VM_READ]					= PAGE_READONLY,
-	[VM_WRITE]					= PAGE_COPY,
-	[VM_WRITE | VM_READ]				= PAGE_COPY,
-	[VM_EXEC]					= PAGE_READONLY,
-	[VM_EXEC | VM_READ]				= PAGE_READONLY,
-	[VM_EXEC | VM_WRITE]				= PAGE_COPY,
-	[VM_EXEC | VM_WRITE | VM_READ]			= PAGE_COPY,
-	[VM_SHARED]					= PAGE_NONE,
-	[VM_SHARED | VM_READ]				= PAGE_READONLY,
-	[VM_SHARED | VM_WRITE]				= PAGE_SHARED,
-	[VM_SHARED | VM_WRITE | VM_READ]		= PAGE_SHARED,
-	[VM_SHARED | VM_EXEC]				= PAGE_READONLY,
-	[VM_SHARED | VM_EXEC | VM_READ]			= PAGE_READONLY,
-	[VM_SHARED | VM_EXEC | VM_WRITE]		= PAGE_SHARED,
-	[VM_SHARED | VM_EXEC | VM_WRITE | VM_READ]	= PAGE_SHARED
-};
-DECLARE_VM_GET_PAGE_PROT
 
 extern void ia64_tlb_init (void);
-
-extern void __meminit memmap_init_range(unsigned long size, int nid,
-    unsigned long zone, unsigned long start_pfn,
-    unsigned long zone_end_pfn, enum meminit_context context,
-    struct vmem_altmap *altmap, int migratetype,
-    bool isolate_pageblock);
 
 unsigned long MAX_DMA_ADDRESS = PAGE_OFFSET + 0x100000000UL;
 
@@ -72,14 +46,10 @@ unsigned long VMALLOC_END = VMALLOC_END_INIT;
 EXPORT_SYMBOL(VMALLOC_END);
 struct page *vmem_map;
 EXPORT_SYMBOL(vmem_map);
-struct page *mem_map;
-EXPORT_SYMBOL(mem_map);
 #endif
 
 struct page *zero_page_memmap_ptr;	/* map entry for zero page */
 EXPORT_SYMBOL(zero_page_memmap_ptr);
-
-static void __meminit ia64_memmap_init(unsigned long, int, unsigned long, unsigned long);
 
 void
 __ia64_sync_icache_dcache (pte_t pte)
@@ -90,11 +60,11 @@ __ia64_sync_icache_dcache (pte_t pte)
 	page = pte_page(pte);
 	addr = (unsigned long) page_address(page);
 
-	if (test_bit(PG_arch_1, (const unsigned long *)&page->flags))
+	if (test_bit(PG_arch_1, &page->flags))
 		return;				/* i-cache is already coherent with d-cache */
 
 	flush_icache_range(addr, addr + (PAGE_SIZE << compound_order(page)));
-	set_bit(PG_arch_1, (const unsigned long *)&page->flags);	/* mark page as clean */
+	set_bit(PG_arch_1, &page->flags);	/* mark page as clean */
 }
 
 #ifdef CONFIG_SWIOTLB
@@ -147,17 +117,15 @@ ia64_init_addr_space (void)
 		vma_set_anonymous(vma);
 		vma->vm_start = current->thread.rbs_bot & PAGE_MASK;
 		vma->vm_end = vma->vm_start + PAGE_SIZE;
-		vm_flags_reset(vma, VM_DATA_DEFAULT_FLAGS);
-		vm_flags_reset(vma, VM_GROWSUP);
-		vm_flags_reset(vma, VM_ACCOUNT);
+		vma->vm_flags = VM_DATA_DEFAULT_FLAGS|VM_GROWSUP|VM_ACCOUNT;
 		vma->vm_page_prot = vm_get_page_prot(vma->vm_flags);
-		mmap_write_lock(current->mm);
+		down_write(&current->mm->mmap_sem);
 		if (insert_vm_struct(current->mm, vma)) {
-			mmap_write_unlock(current->mm);
+			up_write(&current->mm->mmap_sem);
 			vm_area_free(vma);
 			return;
 		}
-		mmap_write_unlock(current->mm);
+		up_write(&current->mm->mmap_sem);
 	}
 
 	/* map NaT-page at address zero to speed up speculative dereferencing of NULL: */
@@ -167,18 +135,15 @@ ia64_init_addr_space (void)
 			vma_set_anonymous(vma);
 			vma->vm_end = PAGE_SIZE;
 			vma->vm_page_prot = __pgprot(pgprot_val(PAGE_READONLY) | _PAGE_MA_NAT);
-			vm_flags_reset(vma, VM_READ);
-			vm_flags_reset(vma, VM_MAYREAD);
-			vm_flags_reset(vma, VM_IO);
-			vm_flags_reset(vma, VM_DONTEXPAND);
-			vm_flags_reset(vma, VM_DONTDUMP);
-			mmap_write_lock(current->mm);
+			vma->vm_flags = VM_READ | VM_MAYREAD | VM_IO |
+					VM_DONTEXPAND | VM_DONTDUMP;
+			down_write(&current->mm->mmap_sem);
 			if (insert_vm_struct(current->mm, vma)) {
-				mmap_write_unlock(current->mm);
+				up_write(&current->mm->mmap_sem);
 				vm_area_free(vma);
 				return;
 			}
-			mmap_write_unlock(current->mm);
+			up_write(&current->mm->mmap_sem);
 		}
 	}
 }
@@ -251,8 +216,7 @@ put_kernel_page (struct page *page, unsigned long address, pgprot_t pgprot)
 	pgd = pgd_offset_k(address);		/* note: this is NOT pgd_offset()! */
 
 	{
-		p4d_t *p4d = p4d_offset(pgd, address);
-		pud = pud_alloc(&init_mm, p4d, address);
+		pud = pud_alloc(&init_mm, pgd, address);
 		if (!pud)
 			goto out;
 		pmd = pmd_alloc(&init_mm, pud, address);
@@ -312,7 +276,7 @@ static int __init gate_vma_init(void)
 	vma_init(&gate_vma, NULL);
 	gate_vma.vm_start = FIXADDR_USER_START;
 	gate_vma.vm_end = FIXADDR_USER_END;
-	vm_flags_init(&gate_vma, VM_READ | VM_MAYREAD | VM_EXEC | VM_MAYEXEC);
+	gate_vma.vm_flags = VM_READ | VM_MAYREAD | VM_EXEC | VM_MAYEXEC;
 	gate_vma.vm_page_prot = __P101;
 
 	return 0;
@@ -429,8 +393,7 @@ int vmemmap_find_next_valid_pfn(int node, int i)
 			continue;
 		}
 
-		p4d_t *p4d = p4d_offset(pgd, end_address);
-		pud = pud_offset(p4d, end_address);
+		pud = pud_offset(pgd, end_address);
 		if (pud_none(*pud)) {
 			end_address += PUD_SIZE;
 			continue;
@@ -487,8 +450,7 @@ int __init create_mem_map_page_table(u64 start, u64 end, void *arg)
 				goto err_alloc;
 			pgd_populate(&init_mm, pgd, pud);
 		}
-		p4d_t *p4d = p4d_offset(pgd, address);
-		pud = pud_offset(p4d, address);
+		pud = pud_offset(pgd, address);
 
 		if (pud_none(*pud)) {
 			pmd = memblock_alloc_node(PAGE_SIZE, PAGE_SIZE, node);
@@ -555,23 +517,22 @@ virtual_memmap_init(u64 start, u64 end, void *arg)
 		    / sizeof(struct page));
 
 	if (map_start < map_end)
-		memmap_init_range((unsigned long)(map_end - map_start),
-        		args->nid, args->zone, page_to_pfn(map_start),
-        		page_to_pfn(map_end), MEMINIT_EARLY, NULL, MIGRATE_MOVABLE, false);
+		memmap_init_zone((unsigned long)(map_end - map_start),
+				 args->nid, args->zone, page_to_pfn(map_start),
+				 MEMMAP_EARLY, NULL);
 	return 0;
 }
 
 void __meminit
-ia64_memmap_init (unsigned long size, int nid, unsigned long zone,
-            unsigned long start_pfn)
+memmap_init (unsigned long size, int nid, unsigned long zone,
+	     unsigned long start_pfn)
 {
 	if (!vmem_map) {
-		memmap_init_range(size, nid, zone, start_pfn, start_pfn + size,
-                  MEMINIT_EARLY, NULL, MIGRATE_MOVABLE, false);
+		memmap_init_zone(size, nid, zone, start_pfn, MEMMAP_EARLY,
+				NULL);
 	} else {
 		struct page *start;
 		struct memmap_init_callback_data args;
-		struct memblock_region *r;
 
 		start = pfn_to_page(start_pfn);
 		args.start = start;
@@ -579,18 +540,7 @@ ia64_memmap_init (unsigned long size, int nid, unsigned long zone,
 		args.nid = nid;
 		args.zone = zone;
 
-		/*
-		 * efi_memmap_walk() iterates kern_memmap which applies
-		 * granule-boundary rounding and may miss regions on
-		 * simulators (e.g. ski) with a minimal EFI memory map.
-		 * Use memblock instead, which always reflects the true
-		 * physical memory layout by this point.
-		 */
-		for_each_mem_region(r) {
-			u64 mstart = r->base + PAGE_OFFSET;
-			u64 mend   = mstart + r->size;
-			virtual_memmap_init(mstart, mend, &args);
-		}
+		efi_memmap_walk(virtual_memmap_init, &args);
 	}
 }
 
@@ -599,9 +549,10 @@ ia64_pfn_valid (unsigned long pfn)
 {
 	char byte;
 	struct page *pg = pfn_to_page(pfn);
-	return     (get_kernel_nofault(byte, (char *) pg) == 0)
+
+	return     (__get_user(byte, (char __user *) pg) == 0)
 		&& ((((u64)pg & PAGE_MASK) == (((u64)(pg + 1) - 1) & PAGE_MASK))
-			|| (get_kernel_nofault(byte, (char *) (pg + 1) - 1) == 0));
+			|| (__get_user(byte, (char __user *) (pg + 1) - 1) == 0));
 }
 EXPORT_SYMBOL(ia64_pfn_valid);
 
@@ -633,7 +584,7 @@ int __init register_active_ranges(u64 start, u64 len, int nid)
 #endif
 
 	if (start < end)
-		memblock_add_node(__pa(start), end - start, nid, MEMBLOCK_NONE);
+		memblock_add_node(__pa(start), end - start, nid);
 	return 0;
 }
 
@@ -694,26 +645,10 @@ mem_init (void)
 	BUG_ON(!mem_map);
 #endif
 
+	set_max_mapnr(max_low_pfn);
 	high_memory = __va(max_low_pfn * PAGE_SIZE);
-
-	{
-		extern struct group_info init_groups;
-
-		struct cred *cred = (struct cred *)init_task.cred;
-
-		if (!cred->user) {
-			extern struct user_struct root_user;
-			extern struct user_namespace init_user_ns;
-			extern struct ucounts init_ucounts;
-
-			cred->user = &root_user;
-			cred->user_ns = &init_user_ns;
-			cred->ucounts = &init_ucounts;
-			cred->group_info = &init_groups;
-			atomic_long_set(&cred->usage, 4);
-			printk(KERN_ERR "IA64: Fixed up null init_cred fields\n");
-    }
-}
+	memblock_free_all();
+	mem_init_print_info(NULL);
 
 	/*
 	 * For fsyscall entrpoints with no light-weight handler, use the ordinary

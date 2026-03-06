@@ -38,18 +38,8 @@
 
 #include <asm/intrinsics.h>
 #include <asm/pgtable.h>
-
-#ifndef RGN_MAP_LIMIT
-#include <asm/pgtable.h>
-#endif
-
 #include <asm/io.h>
 #include <asm/extable.h>
-#include <asm/processor.h>
-#include <asm/ptrace.h>
-
-#define HAVE_ARCH_STRNLEN_USER
-#define HAVE_ARCH_STRNCPY_FROM_USER
 
 /*
  * For historical reasons, the following macros are grossly misnamed:
@@ -332,7 +322,5 @@ static __inline__ void *xlate_dev_kmem_ptr(void *p)
 
 	return ptr;
 }
-
-static inline bool nmi_uaccess_okay(void) { return true; }
 
 #endif /* _ASM_IA64_UACCESS_H */
