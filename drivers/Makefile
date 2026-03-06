@@ -60,6 +60,7 @@ obj-$(CONFIG_RESET_CONTROLLER)	+= reset/
 # default.
 obj-y				+= tty/
 obj-y				+= char/
+obj-$(CONFIG_SGI_SN)		+= sn/
 
 # iommu/ comes before gpu as gpu are using iommu controllers
 obj-y				+= iommu/

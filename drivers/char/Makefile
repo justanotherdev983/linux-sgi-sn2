@@ -33,6 +33,10 @@ obj-$(CONFIG_PC8736x_GPIO)	+= pc8736x_gpio.o
 obj-$(CONFIG_NSC_GPIO)		+= nsc_gpio.o
 obj-$(CONFIG_TELCLOCK)		+= tlclk.o
 
+obj-$(CONFIG_SGI_SNSC)		+= snsc.o snsc_event.o
+obj-$(CONFIG_MSPEC)		+= mspec.o
+obj-$(CONFIG_SGI_MBCS)		+= mbcs.o
+
 obj-$(CONFIG_MWAVE)		+= mwave/
 obj-y				+= agp/
 
