@@ -8,7 +8,6 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 
-#include <linux/dma-noncoherent.h>
 #include <linux/efi.h>
 #include <linux/elf.h>
 #include <linux/memblock.h>
@@ -38,6 +37,7 @@
 #include <asm/mca.h>
 
 extern void ia64_tlb_init (void);
+extern void memblock_free_all(void);
 
 unsigned long MAX_DMA_ADDRESS = PAGE_OFFSET + 0x100000000UL;
 
@@ -117,15 +117,17 @@ ia64_init_addr_space (void)
 		vma_set_anonymous(vma);
 		vma->vm_start = current->thread.rbs_bot & PAGE_MASK;
 		vma->vm_end = vma->vm_start + PAGE_SIZE;
-		vma->vm_flags = VM_DATA_DEFAULT_FLAGS|VM_GROWSUP|VM_ACCOUNT;
+		vm_flags_reset(vma, VM_DATA_DEFAULT_FLAGS);
+		vm_flags_reset(vma, VM_GROWSUP);
+		vm_flags_reset(vma, VM_ACCOUNT);
 		vma->vm_page_prot = vm_get_page_prot(vma->vm_flags);
-		down_write(&current->mm->mmap_sem);
+		mmap_write_lock(current->mm);
 		if (insert_vm_struct(current->mm, vma)) {
-			up_write(&current->mm->mmap_sem);
+			mmap_write_unlock(current->mm);
 			vm_area_free(vma);
 			return;
 		}
-		up_write(&current->mm->mmap_sem);
+		mmap_write_unlock(current->mm);
 	}
 
 	/* map NaT-page at address zero to speed up speculative dereferencing of NULL: */
@@ -135,15 +137,18 @@ ia64_init_addr_space (void)
 			vma_set_anonymous(vma);
 			vma->vm_end = PAGE_SIZE;
 			vma->vm_page_prot = __pgprot(pgprot_val(PAGE_READONLY) | _PAGE_MA_NAT);
-			vma->vm_flags = VM_READ | VM_MAYREAD | VM_IO |
-					VM_DONTEXPAND | VM_DONTDUMP;
-			down_write(&current->mm->mmap_sem);
+			vm_flags_reset(vma, VM_READ);
+			vm_flags_reset(vma, VM_MAYREAD);
+			vm_flags_reset(vma, VM_IO);
+			vm_flags_reset(vma, VM_DONTEXPAND);
+			vm_flags_reset(vma, VM_DONTDUMP);
+			mmap_write_lock(current->mm);
 			if (insert_vm_struct(current->mm, vma)) {
-				up_write(&current->mm->mmap_sem);
+				mmap_write_unlock(current->mm);
 				vm_area_free(vma);
 				return;
 			}
-			up_write(&current->mm->mmap_sem);
+			mmap_write_unlock(current->mm);
 		}
 	}
 }
@@ -276,7 +281,10 @@ static int __init gate_vma_init(void)
 	vma_init(&gate_vma, NULL);
 	gate_vma.vm_start = FIXADDR_USER_START;
 	gate_vma.vm_end = FIXADDR_USER_END;
-	gate_vma.vm_flags = VM_READ | VM_MAYREAD | VM_EXEC | VM_MAYEXEC;
+	vm_flags_reset(vma, VM_READ);
+	vm_flags_reset(vma, VM_MAYREAD);
+	vm_flags_reset(vma, VM_EXEC);
+	vm_flags_reset(vma, VM_MAYEXEC);
 	gate_vma.vm_page_prot = __P101;
 
 	return 0;
@@ -393,7 +401,8 @@ int vmemmap_find_next_valid_pfn(int node, int i)
 			continue;
 		}
 
-		pud = pud_offset(pgd, end_address);
+		p4d_t *p4d = p4d_offset(pgd, addr);
+		pud = pud_offset(p4d, addr);
 		if (pud_none(*pud)) {
 			end_address += PUD_SIZE;
 			continue;
@@ -450,7 +459,8 @@ int __init create_mem_map_page_table(u64 start, u64 end, void *arg)
 				goto err_alloc;
 			pgd_populate(&init_mm, pgd, pud);
 		}
-		pud = pud_offset(pgd, address);
+		p4d_t *p4d = p4d_offset(pgd, addr);
+		pud = pud_offset(p4d, addr);
 
 		if (pud_none(*pud)) {
 			pmd = memblock_alloc_node(PAGE_SIZE, PAGE_SIZE, node);
@@ -519,7 +529,7 @@ virtual_memmap_init(u64 start, u64 end, void *arg)
 	if (map_start < map_end)
 		memmap_init_zone((unsigned long)(map_end - map_start),
 				 args->nid, args->zone, page_to_pfn(map_start),
-				 MEMMAP_EARLY, NULL);
+				 MEMINIT_EARLY, NULL);
 	return 0;
 }
 
@@ -528,7 +538,7 @@ memmap_init (unsigned long size, int nid, unsigned long zone,
 	     unsigned long start_pfn)
 {
 	if (!vmem_map) {
-		memmap_init_zone(size, nid, zone, start_pfn, MEMMAP_EARLY,
+		memmap_init_zone(size, nid, zone, start_pfn, MEMINIT_EARLY,
 				NULL);
 	} else {
 		struct page *start;
@@ -584,7 +594,7 @@ int __init register_active_ranges(u64 start, u64 len, int nid)
 #endif
 
 	if (start < end)
-		memblock_add_node(__pa(start), end - start, nid);
+		memblock_add_node(__pa(start), end - start, nid, MEMBLOCK_NONE);
 	return 0;
 }
 
@@ -645,10 +655,8 @@ mem_init (void)
 	BUG_ON(!mem_map);
 #endif
 
-	set_max_mapnr(max_low_pfn);
 	high_memory = __va(max_low_pfn * PAGE_SIZE);
 	memblock_free_all();
-	mem_init_print_info(NULL);
 
 	/*
 	 * For fsyscall entrpoints with no light-weight handler, use the ordinary

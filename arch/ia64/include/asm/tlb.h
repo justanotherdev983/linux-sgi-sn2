@@ -139,8 +139,10 @@ ia64_tlb_flush_mmu_free(struct mmu_gather *tlb)
 
 	tlb->nr = 0;
 	tlb->start_addr = ~0UL;
-	for (i = 0; i < nr; ++i)
-		free_page_and_swap_cache(tlb->pages[i]);
+	for (i = 0; i < nr; ++i) {
+		struct encoded_page *enc = encode_page(tlb->pages[i], 0);
+		free_pages_and_swap_cache(&enc, 1);
+	}
 }
 
 /*

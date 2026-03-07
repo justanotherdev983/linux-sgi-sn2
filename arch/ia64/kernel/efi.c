@@ -45,10 +45,13 @@
 
 #define EFI_DEBUG	0
 
+unsigned long ia64_sal_systab_phys;
+
 static __initdata unsigned long palo_phys;
 
 static __initdata efi_config_table_type_t arch_tables[] = {
 	{PROCESSOR_ABSTRACTION_LAYER_OVERWRITE_GUID, "PALO", &palo_phys},
+	{SAL_SYSTEM_TABLE_GUID, "SALsystab", &ia64_sal_systab_phys},
 	{NULL_GUID, NULL, 0},
 };
 
