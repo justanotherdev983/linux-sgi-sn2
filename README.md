@@ -49,6 +49,11 @@ Work in progress — header compatibility fixes for modern kernel APIs are ongoi
 - `drivers/ide/sgiioc4.c` restored but not wired in — IDE subsystem removed in 6.x
 - `task_thread_info` conflict with `include/linux/sched.h` pending resolution
 
+**Patches:**
+- All current saved listed patches are in patch-series/ 
+    and each represent an individual patch to apply to mainline kernel.
+- The code you see in this repo has the latest commited changes
+
 ## Contributing
 
 PRs and contributions in any way/shape/form are always welcome and highly appreciated :). 
