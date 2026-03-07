@@ -80,4 +80,6 @@ extern void numa_clear_node(int cpu);
 #define numa_clear_node(cpu)	do { } while (0)
 #endif /* CONFIG_NUMA */
 
+#define early_cpu_to_node(cpu)  cpu_to_node(cpu)
+
 #endif /* _ASM_IA64_NUMA_H */

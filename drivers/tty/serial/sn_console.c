@@ -30,6 +30,7 @@
 #include <linux/delay.h> /* for mdelay */
 #include <linux/miscdevice.h>
 #include <linux/serial_core.h>
+#include <linux/kfifo.h>
 
 #include <asm/io.h>
 #include <asm/sn/simulator.h>
@@ -520,7 +521,7 @@ static void sn_transmit_chars(struct sn_cons_port *port, int raw)
 
 	if (port->sc_port.state) {
 		/* We're initialized, using serial core infrastructure */
-		xmit = &port->sc_port.state->xmit;
+		xmit = &port->sc_port.state->port.xmit_fifo
 	} else {
 		/* Probably sn_sal_switch_to_asynch has been run but serial core isn't
 		 * initialized yet.  Just return.  Writes are going through
@@ -529,7 +530,7 @@ static void sn_transmit_chars(struct sn_cons_port *port, int raw)
 		return;
 	}
 
-	if (uart_circ_empty(xmit) || uart_tx_stopped(&port->sc_port)) {
+	if (kfifo_is_empty(&port->state->port.xmit_fifo) || uart_tx_stopped(&port->sc_port)) {
 		/* Nothing to do. */
 		ia64_sn_console_intr_disable(SAL_CONSOLE_INTR_XMIT);
 		return;
@@ -570,10 +571,10 @@ static void sn_transmit_chars(struct sn_cons_port *port, int raw)
 		}
 	}
 
-	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
+	if (kfifo_len(&port->state->port.xmit_fifo) < WAKEUP_CHARS)
 		uart_write_wakeup(&port->sc_port);
 
-	if (uart_circ_empty(xmit))
+	if (kfifo_is_empty(&port->state->port.xmit_fifo))
 		snp_stop_tx(&port->sc_port);	/* no-op for us */
 }
 
@@ -889,8 +890,8 @@ sn_sal_console_write(struct console *co, const char *s, unsigned count)
 	/* somebody really wants this output, might be an
 	 * oops, kdb, panic, etc.  make sure they get it. */
 	if (!spin_trylock_irqsave(&port->sc_port.lock, flags)) {
-		int lhead = port->sc_port.state->xmit.head;
-		int ltail = port->sc_port.state->xmit.tail;
+		int lhead = port->sc_port.state->port.xmit_fifo.head;
+		int ltail = port->sc_port.state->port.xmit_fifo.tail;
 		int counter, got_lock = 0;
 
 		/*
@@ -913,13 +914,13 @@ sn_sal_console_write(struct console *co, const char *s, unsigned count)
 				break;
 			} else {
 				/* still locked */
-				if ((lhead != port->sc_port.state->xmit.head)
+				if ((lhead != port->sc_port.state->port.xmit_fifo.head)
 				    || (ltail !=
-					port->sc_port.state->xmit.tail)) {
+					port->sc_port.state->port.xmit_fifo.tail)) {
 					lhead =
-						port->sc_port.state->xmit.head;
+						port->sc_port.state->port.xmit_fifo.head;
 					ltail =
-						port->sc_port.state->xmit.tail;
+						port->sc_port.state->port.xmit_fifo.tail;
 					counter = 0;
 				}
 			}
