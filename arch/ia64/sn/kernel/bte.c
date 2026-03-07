@@ -416,7 +416,7 @@ EXPORT_SYMBOL(bte_unaligned_copy);
  ***********************************************************************/
 static void bte_recovery_timeout(struct timer_list *t)
 {
-	struct nodepda_s *nodepda = from_timer(nodepda, t, bte_recovery_timer);
+	struct nodepda_s *nodepda = timer_container_of(nodepda, t, bte_recovery_timer);
 
 	bte_error_handler(nodepda);
 }

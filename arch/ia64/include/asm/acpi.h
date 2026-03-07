@@ -111,6 +111,7 @@ static inline void arch_acpi_set_pdc_bits(u32 *buf)
 {
 	buf[2] |= ACPI_PDC_EST_CAPABILITY_SMP;
 }
+#define arch_acpi_set_proc_cap_bits arch_acpi_set_pdc_bits
 
 #define acpi_unlazy_tlb(x)
 

@@ -81,6 +81,8 @@ extern spinlock_t sal_lock;
 	ia64_load_scratch_fpregs(__ia64_scs_fr);	\
 } while (0)
 
+#define SAL_SYSTEM_TABLE_GUID	EFI_GUID(0xeb9d2d32, 0x2d88, 0x11d3, 0x9a, 0x16, 0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d)
+
 #define SAL_SET_VECTORS			0x01000000
 #define SAL_GET_STATE_INFO		0x01000001
 #define SAL_GET_STATE_INFO_SIZE		0x01000002
@@ -239,6 +241,7 @@ extern unsigned short sal_version;	/* SAL version; OEM dependent */
 #define SAL_VERSION_CODE(major, minor) ((bin2bcd(major) << 8) | bin2bcd(minor))
 
 extern const char *ia64_sal_strerror (long status);
+extern unsigned long ia64_sal_systab_phys;
 extern void ia64_sal_init (struct ia64_sal_systab *sal_systab);
 
 /* SAL information type encodings */
