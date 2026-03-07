@@ -560,3 +560,8 @@ config MSPEC
 	  If you have an ia64 and you want to enable memory special
 	  operations support (formerly known as fetchop), say Y here,
 	  otherwise say N.
+
+config GENERIC_STRNCPY_FROM_USER
+	def_bool n
+config GENERIC_STRNLEN_USER
+	def_bool n

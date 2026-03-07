@@ -2,6 +2,8 @@
 #ifndef _ASM_IA64_CHECKSUM_H
 #define _ASM_IA64_CHECKSUM_H
 
+#define _HAVE_ARCH_CSUM_AND_COPY
+
 /*
  * Modified 1998, 1999
  *	David Mosberger-Tang <davidm@hpl.hp.com>, Hewlett-Packard Co
@@ -48,7 +50,7 @@ extern __wsum csum_partial_copy_from_user(const void __user *src, void *dst,
 						 int *errp);
 
 extern __wsum csum_partial_copy_nocheck(const void *src, void *dst,
-					       int len, __wsum sum);
+					       int len);
 
 /*
  * This routine is used for miscellaneous IP-like checksums, mainly in
