@@ -37,6 +37,7 @@
 #include <linux/crash_dump.h>
 #include <linux/iommu-helper.h>
 #include <linux/dma-mapping.h>
+#include <linux/dma-map-ops.h>
 #include <linux/prefetch.h>
 
 #include <asm/delay.h>		/* ia64_get_itc() */
@@ -2186,5 +2187,6 @@ const struct dma_map_ops sba_dma_ops = {
 
 void sba_dma_init(void)
 {
-	dma_ops = &sba_dma_ops;
+	//set_dma_ops(dev, &sba_dma_ops); //XXX: Hacky fix. need to make this functional 
+	//in arch/ia64/mm/init.c BOU
 }

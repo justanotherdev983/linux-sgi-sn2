@@ -14,7 +14,6 @@
  * 06/16/00	A. Mallick	added csd/ssd/tssd for ia32 support
  */
 
-
 #include <asm/intrinsics.h>
 #include <asm/kregs.h>
 #include <asm/ptrace.h>

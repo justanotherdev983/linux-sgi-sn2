@@ -49,8 +49,8 @@
 #include <asm/sn/sn_sal.h>
 #include <asm/sn/geo.h>
 #include <asm/sn/sn_feature_sets.h>
-#include "xtalk/xwidgetdev.h"
-#include "xtalk/hubdev.h"
+#include "../include/xtalk/xwidgetdev.h"
+#include "../include/xtalk/hubdev.h"
 #include <asm/sn/klconfig.h>
 
 

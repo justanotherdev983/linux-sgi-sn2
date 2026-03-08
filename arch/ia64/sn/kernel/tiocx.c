@@ -6,6 +6,7 @@
  * Copyright (c) 2005 Silicon Graphics, Inc.  All rights reserved.
  */
 
+#include <linux/compiler.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
@@ -23,9 +24,9 @@
 #include <asm/sn/tiocx.h>
 #include <asm/sn/l1.h>
 #include <asm/sn/module.h>
-#include "tio.h"
-#include "xtalk/xwidgetdev.h"
-#include "xtalk/hubdev.h"
+#include "../include/tio.h"
+#include "../include/xtalk/xwidgetdev.h"
+#include "../include/xtalk/hubdev.h"
 
 #define CX_DEV_NONE 0
 #define DEVICE_NAME "tiocx"
@@ -565,4 +566,3 @@ module_exit(tiocx_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Bruce Losure <blosure@sgi.com>");
 MODULE_DESCRIPTION("TIOCX module");
-MODULE_SUPPORTED_DEVICE(DEVICE_NAME);
