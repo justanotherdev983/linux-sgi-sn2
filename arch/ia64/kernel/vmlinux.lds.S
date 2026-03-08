@@ -7,6 +7,8 @@
 
 #include <asm-generic/vmlinux.lds.h>
 
+#undef ALIGN 
+
 OUTPUT_FORMAT("elf64-ia64-little")
 OUTPUT_ARCH(ia64)
 ENTRY(phys_start)

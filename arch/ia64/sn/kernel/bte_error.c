@@ -8,12 +8,12 @@
 
 #include <linux/types.h>
 #include <asm/sn/sn_sal.h>
-#include "ioerror.h"
+#include "../include/ioerror.h"
 #include <asm/sn/addrs.h>
 #include <asm/sn/shubio.h>
 #include <asm/sn/geo.h>
-#include "xtalk/xwidgetdev.h"
-#include "xtalk/hubdev.h"
+#include "../include/xtalk/xwidgetdev.h"
+#include "../include/xtalk/hubdev.h"
 #include <asm/sn/bte.h>
 #include <asm/param.h>
 

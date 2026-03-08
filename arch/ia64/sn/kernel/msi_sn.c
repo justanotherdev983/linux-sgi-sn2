@@ -75,7 +75,7 @@ int sn_setup_msi_irq(struct pci_dev *pdev, struct msi_desc *entry)
 	struct sn_pcibus_provider *provider = SN_PCIDEV_BUSPROVIDER(pdev);
 	int irq;
 
-	if (!entry->msi_attrib.is_64)
+	if (!entry->pci.msi_attrib.is_64)
 		return -EINVAL;
 
 	if (bussoft == NULL)

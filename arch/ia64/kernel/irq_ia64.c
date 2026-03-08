@@ -617,7 +617,7 @@ ia64_native_register_percpu_irq (ia64_vector vec, struct irqaction *action)
 	irq_set_status_flags(irq, IRQ_PER_CPU);
 	irq_set_chip(irq, &irq_type_ia64_lsapic);
 	if (action)
-		setup_irq(irq, action);
+		irq_set_chip_and_handler(irq, action);
 	irq_set_handler(irq, handle_percpu_irq);
 }
 

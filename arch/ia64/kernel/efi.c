@@ -22,6 +22,9 @@
  * Goutham Rao: <goutham.rao@intel.com>
  *	Skip non-WB memory and ignore empty memory ranges.
  */
+
+#include <linux/compiler.h>
+#include <linux/io.h>
 #include <linux/module.h>
 #include <linux/memblock.h>
 #include <linux/crash_dump.h>
@@ -33,7 +36,12 @@
 #include <linux/efi.h>
 #include <linux/kexec.h>
 #include <linux/mm.h>
+#include <linux/percpu-rwsem.h>
+#include <linux/rwsem.h>
+#include <linux/rcuwait.h>
+#include <linux/sched/signal.h>
 
+#include <asm/efi.h>
 #include <asm/io.h>
 #include <asm/kregs.h>
 #include <asm/meminit.h>
@@ -45,18 +53,24 @@
 
 #define EFI_DEBUG	0
 
-typedef int (*efi_freemem_callback_t)(u64 start, u64 end, void *arg);
-
 unsigned long ia64_sal_systab_phys;
 
 static efi_system_table_t *efi_systab_ia64;
 
 static __initdata unsigned long palo_phys;
 
-static const efi_config_table_type_t arch_tables[] = {
-	{PROCESSOR_ABSTRACTION_LAYER_OVERWRITE_GUID, "PALO", &palo_phys},
-	{SAL_SYSTEM_TABLE_GUID, "SALsystab", &ia64_sal_systab_phys},
-	{NULL_GUID, NULL, 0},
+static efi_config_table_type_t arch_tables[] = {
+	{
+		.guid = PROCESSOR_ABSTRACTION_LAYER_OVERWRITE_GUID,
+		.ptr = &palo_phys,
+		.name = "PALO"
+	},
+	{
+		.guid = SAL_SYSTEM_TABLE_GUID,
+		.ptr = &ia64_sal_systab_phys,
+		.name = "SALsystab"
+	},
+	{ .guid = NULL_GUID },
 };
 
 extern efi_status_t efi_call_phys (void *, ...);
@@ -541,9 +555,13 @@ efi_init (void)
 
 	palo_phys      = EFI_INVALID_TABLE_ADDR;
 
-	if (efi_config_parse_tables(efi_systab_ia64->tables,
-        	efi_systab_ia64->nr_tables, arch_tables) != 0)
-		return;
+	arch_tables[0].ptr = (void *)&palo_phys;
+	arch_tables[1].ptr = (void *)&ia64_sal_systab_phys;
+
+	if ((efi_config_parse_tables(__va(efi_systab_ia64->tables),
+                        efi_systab_ia64->nr_tables,
+                        arch_tables)) != 0)
+				return;
 
 	if (palo_phys != EFI_INVALID_TABLE_ADDR)
 		handle_palo(palo_phys);

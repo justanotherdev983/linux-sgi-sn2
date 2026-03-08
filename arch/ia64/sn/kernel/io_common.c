@@ -23,8 +23,8 @@
 #include <asm/sn/sn_sal.h>
 #include <asm/sn/tioca_provider.h>
 #include <asm/sn/tioce_provider.h>
-#include "xtalk/hubdev.h"
-#include "xtalk/xwidgetdev.h"
+#include "../include/xtalk/hubdev.h"
+#include "../include/xtalk/xwidgetdev.h"
 #include <linux/acpi.h>
 #include <asm/sn/sn2/sn_hwperf.h>
 #include <asm/sn/acpi.h>
