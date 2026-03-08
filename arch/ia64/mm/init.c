@@ -39,6 +39,12 @@
 extern void ia64_tlb_init (void);
 extern void memblock_free_all(void);
 
+extern void __meminit memmap_init_range(unsigned long size, int nid,
+    unsigned long zone, unsigned long start_pfn,
+    unsigned long zone_end_pfn, enum meminit_context context,
+    struct vmem_altmap *altmap, int migratetype,
+    bool isolate_pageblock);
+
 unsigned long MAX_DMA_ADDRESS = PAGE_OFFSET + 0x100000000UL;
 
 #ifdef CONFIG_VIRTUAL_MEM_MAP
@@ -51,6 +57,8 @@ EXPORT_SYMBOL(vmem_map);
 struct page *zero_page_memmap_ptr;	/* map entry for zero page */
 EXPORT_SYMBOL(zero_page_memmap_ptr);
 
+static void __meminit ia64_memmap_init(unsigned long, int, unsigned long, unsigned long);
+
 void
 __ia64_sync_icache_dcache (pte_t pte)
 {
@@ -60,11 +68,11 @@ __ia64_sync_icache_dcache (pte_t pte)
 	page = pte_page(pte);
 	addr = (unsigned long) page_address(page);
 
-	if (test_bit(PG_arch_1, &page->flags))
+	if (test_bit(PG_arch_1, (const unsigned long *)&page->flags))
 		return;				/* i-cache is already coherent with d-cache */
 
 	flush_icache_range(addr, addr + (PAGE_SIZE << compound_order(page)));
-	set_bit(PG_arch_1, &page->flags);	/* mark page as clean */
+	set_bit(PG_arch_1, (const unsigned long *)&page->flags);	/* mark page as clean */
 }
 
 #ifdef CONFIG_SWIOTLB
@@ -221,7 +229,8 @@ put_kernel_page (struct page *page, unsigned long address, pgprot_t pgprot)
 	pgd = pgd_offset_k(address);		/* note: this is NOT pgd_offset()! */
 
 	{
-		pud = pud_alloc(&init_mm, pgd, address);
+		p4d_t *p4d = p4d_offset(pgd, address);
+		pud = pud_alloc(&init_mm, p4d, address);
 		if (!pud)
 			goto out;
 		pmd = pmd_alloc(&init_mm, pud, address);
@@ -281,10 +290,7 @@ static int __init gate_vma_init(void)
 	vma_init(&gate_vma, NULL);
 	gate_vma.vm_start = FIXADDR_USER_START;
 	gate_vma.vm_end = FIXADDR_USER_END;
-	vm_flags_reset(vma, VM_READ);
-	vm_flags_reset(vma, VM_MAYREAD);
-	vm_flags_reset(vma, VM_EXEC);
-	vm_flags_reset(vma, VM_MAYEXEC);
+	vm_flags_init(&gate_vma, VM_READ | VM_MAYREAD | VM_EXEC | VM_MAYEXEC);
 	gate_vma.vm_page_prot = __P101;
 
 	return 0;
@@ -401,8 +407,8 @@ int vmemmap_find_next_valid_pfn(int node, int i)
 			continue;
 		}
 
-		p4d_t *p4d = p4d_offset(pgd, addr);
-		pud = pud_offset(p4d, addr);
+		p4d_t *p4d = p4d_offset(pgd, end_address);
+		pud = pud_offset(p4d, end_address);
 		if (pud_none(*pud)) {
 			end_address += PUD_SIZE;
 			continue;
@@ -459,8 +465,8 @@ int __init create_mem_map_page_table(u64 start, u64 end, void *arg)
 				goto err_alloc;
 			pgd_populate(&init_mm, pgd, pud);
 		}
-		p4d_t *p4d = p4d_offset(pgd, addr);
-		pud = pud_offset(p4d, addr);
+		p4d_t *p4d = p4d_offset(pgd, address);
+		pud = pud_offset(p4d, address);
 
 		if (pud_none(*pud)) {
 			pmd = memblock_alloc_node(PAGE_SIZE, PAGE_SIZE, node);
@@ -527,19 +533,19 @@ virtual_memmap_init(u64 start, u64 end, void *arg)
 		    / sizeof(struct page));
 
 	if (map_start < map_end)
-		memmap_init_zone((unsigned long)(map_end - map_start),
-				 args->nid, args->zone, page_to_pfn(map_start),
-				 MEMINIT_EARLY, NULL);
+		memmap_init_range((unsigned long)(map_end - map_start),
+        		args->nid, args->zone, page_to_pfn(map_start),
+        		page_to_pfn(map_end), MEMINIT_EARLY, NULL, MIGRATE_MOVABLE, false);
 	return 0;
 }
 
 void __meminit
-memmap_init (unsigned long size, int nid, unsigned long zone,
+ia64_memmap_init (unsigned long size, int nid, unsigned long zone,
 	     unsigned long start_pfn)
 {
 	if (!vmem_map) {
-		memmap_init_zone(size, nid, zone, start_pfn, MEMINIT_EARLY,
-				NULL);
+		memmap_init_range(size, nid, zone, start_pfn, start_pfn + size,
+                  MEMINIT_EARLY, NULL, MIGRATE_MOVABLE, false);
 	} else {
 		struct page *start;
 		struct memmap_init_callback_data args;

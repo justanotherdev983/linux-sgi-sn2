@@ -465,7 +465,7 @@ void __init sn_setup(char **cmdline_p)
 	 * we set the default root device to /dev/hda
 	 * to make simulation easy
 	 */
-	ROOT_DEV = Root_HDA1;
+	ROOT_DEV = 0;
 
 	/*
 	 * Create the PDAs and NODEPDAs for all the cpus.

@@ -47,7 +47,7 @@ struct device_attribute dev_attr_cxdev_control;
  *
  * Returns 1 if match, 0 otherwise.
  */
-static int tiocx_match(struct device *dev, struct device_driver *drv)
+static int tiocx_match(struct device *dev, const struct device_driver *drv)
 {
 	struct cx_dev *cx_dev = to_cx_dev(dev);
 	struct cx_drv *cx_drv = to_cx_driver(drv);
@@ -65,7 +65,7 @@ static int tiocx_match(struct device *dev, struct device_driver *drv)
 
 }
 
-static int tiocx_uevent(struct device *dev, struct kobj_uevent_env *env)
+static int tiocx_uevent(const struct device *dev, struct kobj_uevent_env *env)
 {
 	return -ENODEV;
 }
@@ -131,14 +131,13 @@ static int cx_device_probe(struct device *dev)
  * cx_driver_remove - Remove driver from device struct.
  * @dev: device
  */
-static int cx_driver_remove(struct device *dev)
+static void cx_driver_remove(struct device *dev)
 {
 	struct cx_dev *cx_dev = to_cx_dev(dev);
 	struct cx_drv *cx_drv = cx_dev->driver;
 	if (cx_drv->remove)
 		cx_drv->remove(cx_dev);
 	cx_dev->driver = NULL;
-	return 0;
 }
 
 struct bus_type tiocx_bus_type = {
@@ -371,7 +370,7 @@ static void tio_corelet_reset(nasid_t nasid, int corelet)
 
 static int is_fpga_tio(int nasid, int *bt)
 {
-	u16 uninitialized_var(ioboard_type);	/* GCC be quiet */
+	u16 ioboard_type;
 	long rc;
 
 	rc = ia64_sn_sysctl_ioboard_get(nasid, &ioboard_type);

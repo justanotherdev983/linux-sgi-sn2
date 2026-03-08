@@ -1296,7 +1296,7 @@ xpc_teardown_ch_structures_sn2(struct xpc_partition *part)
 	xpc_vars_part_sn2[partid].magic = 0;
 
 	/* in case we've still got outstanding timers registered... */
-	del_timer_sync(&part_sn2->dropped_notify_IRQ_timer);
+	timer_delete_sync(&part_sn2->dropped_notify_IRQ_timer);
 	free_irq(SGI_XPC_NOTIFY, (void *)(u64)partid);
 
 	kfree(part_sn2->local_openclose_args_base);
