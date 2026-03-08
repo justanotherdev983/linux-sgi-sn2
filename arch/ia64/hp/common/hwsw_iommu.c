@@ -15,6 +15,7 @@
 
 #include <linux/device.h>
 #include <linux/dma-mapping.h>
+#include <linux/dma-map-ops.h>
 #include <linux/swiotlb.h>
 #include <linux/export.h>
 #include <asm/machvec.h>

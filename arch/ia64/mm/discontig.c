@@ -30,6 +30,14 @@
 #include <asm/numa.h>
 #include <asm/sections.h>
 
+/* Helper to bridge EFI memory walk to memblock */
+static int __init
+memblock_add_node_shim(u64 start, u64 end, void *arg)
+{
+	memblock_add_node(start, end - start, (unsigned long)arg, MEMBLOCK_NONE);
+	return 0;
+}
+
 /*
  * Track per-node information needed to setup the boot memory allocator, the
  * per-node areas, and the real VM.
@@ -492,7 +500,7 @@ void __init find_memory(void)
 	int node;
 
 	reserve_memory();
-	efi_memmap_walk(filter_memory, register_active_ranges);
+	efi_memmap_walk(filter_memory, memblock_add_node_shim);
 
 	if (num_online_nodes() == 0) {
 		printk(KERN_ERR "node info missing!\n");
@@ -605,7 +613,6 @@ void __init paging_init(void)
 
 	max_dma = virt_to_phys((void *) MAX_DMA_ADDRESS) >> PAGE_SHIFT;
 
-	sparse_memory_present_with_active_regions(MAX_NUMNODES);
 	sparse_init();
 
 #ifdef CONFIG_VIRTUAL_MEM_MAP
@@ -631,7 +638,7 @@ void __init paging_init(void)
 	max_zone_pfns[ZONE_DMA32] = max_dma;
 #endif
 	max_zone_pfns[ZONE_NORMAL] = max_pfn;
-	free_area_init_nodes(max_zone_pfns);
+	free_area_init(max_zone_pfns);
 
 	zero_page_memmap_ptr = virt_to_page(ia64_imva(empty_zero_page));
 }

@@ -298,8 +298,8 @@ config IOSAPIC
 
 config FORCE_MAX_ZONEORDER
 	int "MAX_ORDER (11 - 17)"  if !HUGETLB_PAGE
-	range 11 17  if !HUGETLB_PAGE
-	default "17" if HUGETLB_PAGE
+	range 10 17  if !HUGETLB_PAGE
+	default "11" if HUGETLB_PAGE
 	default "11"
 
 config SMP

@@ -13,6 +13,14 @@
  *	David Mosberger-Tang <davidm@hpl.hp.com>
  */
 
+/*
+// XXX: Hacky; maybe circ dep? BOU fixme
+//struct percpu_rw_semaphore;
+#include <linux/rcuwait.h>
+#include <linux/sched/signal.h>
+#include <linux/percpu-rwsem.h>
+*/
+
 #include <asm/mman.h>
 #include <asm/page.h>
 #include <asm/processor.h>
