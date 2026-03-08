@@ -23,6 +23,7 @@
 #include <linux/bitops.h>
 #include <linux/kexec.h>
 
+#include <asm/efi.h>
 #include <asm/dma.h>
 #include <asm/io.h>
 #include <asm/machvec.h>

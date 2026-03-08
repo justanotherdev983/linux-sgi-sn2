@@ -38,8 +38,15 @@
 
 #include <asm/intrinsics.h>
 #include <asm/pgtable.h>
+
+#ifndef RGN_MAP_LIMIT
+#include <asm/pgtable.h>
+#endif
+
 #include <asm/io.h>
 #include <asm/extable.h>
+#include <asm/processor.h>
+#include <asm/ptrace.h>
 
 #define HAVE_ARCH_STRNLEN_USER
 #define HAVE_ARCH_STRNCPY_FROM_USER

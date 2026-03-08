@@ -11,7 +11,7 @@
 #include <asm/sn/pcidev.h>
 #include <asm/sn/pcibus_provider_defs.h>
 #include <asm/sn/sn_sal.h>
-#include "xtalk/hubdev.h"
+#include "../include/xtalk/hubdev.h"
 #include <linux/acpi.h>
 #include <linux/slab.h>
 #include <linux/export.h>
