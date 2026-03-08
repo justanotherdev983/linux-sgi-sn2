@@ -622,6 +622,11 @@ unsigned long __get_wchan(struct task_struct *p)
 	return 0;
 }
 
+unsigned long __get_wchan(struct task_struct *p)
+{
+    return get_wchan(p);
+}
+
 void
 cpu_halt (void)
 {
