@@ -34,6 +34,7 @@
 #include <linux/nodemask.h>
 #include <linux/smp.h>
 #include <linux/mutex.h>
+#include <linux/workqueue.h>
 
 #include <asm/processor.h>
 #include <asm/topology.h>

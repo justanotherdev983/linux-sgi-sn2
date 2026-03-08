@@ -249,11 +249,8 @@ mspec_mmap(struct file *file, struct vm_area_struct *vma,
 	if (vma->vm_pgoff != 0)
 		return -EINVAL;
 
-	if ((vm_flags_clear(vma, VM_SHARED)) == 0)
-		return -EINVAL;
-
-	if ((vm_flags_clear(vma, VM_WRITE)) == 0)
-		return -EPERM;
+	vm_flags_clear(vma, VM_SHARED); 
+	vm_flags_clear(vma, VM_WRITE);
 
 	pages = vma_pages(vma);
 	vdata_size = sizeof(struct vma_data) + pages * sizeof(long);
