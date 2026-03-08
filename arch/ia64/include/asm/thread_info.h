@@ -59,7 +59,6 @@ struct thread_info {
 #else
 #define current_thread_info()	((struct thread_info *) 0)
 #endif
-#define free_thread_stack(tsk)	/* nothing */
 #define task_stack_page(tsk)	((void *)(tsk))
 
 #endif /* !__ASSEMBLY */

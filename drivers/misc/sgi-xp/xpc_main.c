@@ -94,45 +94,32 @@ static int xpc_disengage_max_timelimit = 120;
 
 static struct ctl_table xpc_sys_xpc_hb_dir[] = {
 	{
-	 .procname = "hb_interval",
-	 .data = &xpc_hb_interval,
-	 .maxlen = sizeof(int),
-	 .mode = 0644,
-	 .proc_handler = proc_dointvec_minmax,
-	 .extra1 = &xpc_hb_min_interval,
-	 .extra2 = &xpc_hb_max_interval},
+	.procname = "hb_interval",
+	.data = &xpc_hb_interval,
+	.maxlen = sizeof(int),
+	.mode = 0644,
+	.proc_handler = proc_dointvec_minmax,
+	.extra1 = &xpc_hb_min_interval,
+	.extra2 = &xpc_hb_max_interval},
 	{
-	 .procname = "hb_check_interval",
-	 .data = &xpc_hb_check_interval,
-	 .maxlen = sizeof(int),
-	 .mode = 0644,
-	 .proc_handler = proc_dointvec_minmax,
-	 .extra1 = &xpc_hb_check_min_interval,
-	 .extra2 = &xpc_hb_check_max_interval},
+	.procname = "hb_check_interval",
+	.data = &xpc_hb_check_interval,
+	.maxlen = sizeof(int),
+	.mode = 0644,
+	.proc_handler = proc_dointvec_minmax,
+	.extra1 = &xpc_hb_check_min_interval,
+	.extra2 = &xpc_hb_check_max_interval},
+	{
+	.procname = "disengage_timelimit",
+	.data = &xpc_disengage_timelimit,
+	.maxlen = sizeof(int),
+	.mode = 0644,
+	.proc_handler = proc_dointvec_minmax,
+	.extra1 = &xpc_disengage_min_timelimit,
+	.extra2 = &xpc_disengage_max_timelimit},
 	{}
 };
-static struct ctl_table xpc_sys_xpc_dir[] = {
-	{
-	 .procname = "hb",
-	 .mode = 0555,
-	 .child = xpc_sys_xpc_hb_dir},
-	{
-	 .procname = "disengage_timelimit",
-	 .data = &xpc_disengage_timelimit,
-	 .maxlen = sizeof(int),
-	 .mode = 0644,
-	 .proc_handler = proc_dointvec_minmax,
-	 .extra1 = &xpc_disengage_min_timelimit,
-	 .extra2 = &xpc_disengage_max_timelimit},
-	{}
-};
-static struct ctl_table xpc_sys_dir[] = {
-	{
-	 .procname = "xpc",
-	 .mode = 0555,
-	 .child = xpc_sys_xpc_dir},
-	{}
-};
+
 static struct ctl_table_header *xpc_sysctl;
 
 /* non-zero if any remote partition disengage was timed out */
@@ -174,7 +161,7 @@ struct xpc_arch_operations xpc_arch_ops;
 static void
 xpc_timeout_partition_disengage(struct timer_list *t)
 {
-	struct xpc_partition *part = from_timer(part, t, disengage_timer);
+	struct xpc_partition *part = timer_container_of(part, t, disengage_timer);
 
 	DBUG_ON(time_is_after_jiffies(part->disengage_timeout));
 
@@ -212,7 +199,7 @@ xpc_start_hb_beater(void)
 static void
 xpc_stop_hb_beater(void)
 {
-	del_timer_sync(&xpc_hb_timer);
+	timer_delete_sync(&xpc_hb_timer);
 	xpc_arch_ops.heartbeat_exit();
 }
 
@@ -1265,7 +1252,7 @@ xpc_init(void)
 		goto out_1;
 	}
 
-	xpc_sysctl = register_sysctl_table(xpc_sys_dir);
+	xpc_sysctl = register_sysctl("kernel/xpc/hb", xpc_sys_xpc_hb_dir);
 
 	/*
 	 * Fill the partition reserved page with the information needed by

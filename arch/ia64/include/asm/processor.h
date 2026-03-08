@@ -33,6 +33,7 @@
  * address space.
  */
 #define TASK_SIZE       	DEFAULT_TASK_SIZE
+#define TASK_SIZE_MAX 		TASK_SIZE
 
 /*
  * This decides where the kernel will search for a free chunk of vm
@@ -332,15 +333,9 @@ struct thread_struct {
 struct mm_struct;
 struct task_struct;
 
-/*
- * Free all resources held by a thread. This is called after the
- * parent of DEAD_TASK has collected the exit status of the task via
- * wait().
- */
-#define release_thread(dead_task)
-
 /* Get wait channel for task P.  */
 extern unsigned long get_wchan (struct task_struct *p);
+extern unsigned long __get_wchan(struct task_struct *p);
 
 /* Return instruction pointer of blocked task TSK.  */
 #define KSTK_EIP(tsk)					\

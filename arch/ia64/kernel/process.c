@@ -444,7 +444,7 @@ static void
 do_copy_task_regs (struct task_struct *task, struct unw_frame_info *info, void *arg)
 {
 	unsigned long mask, sp, nat_bits = 0, ar_rnat, urbs_end, cfm;
-	unsigned long uninitialized_var(ip);	/* GCC be quiet */
+	unsigned long ip;
 	elf_greg_t *dst = arg;
 	struct pt_regs *pt;
 	char nat;
@@ -619,6 +619,11 @@ get_wchan (struct task_struct *p)
 			return ip;
 	} while (count++ < 16);
 	return 0;
+}
+
+unsigned long __get_wchan(struct task_struct *p)
+{
+    return get_wchan(p);
 }
 
 void
