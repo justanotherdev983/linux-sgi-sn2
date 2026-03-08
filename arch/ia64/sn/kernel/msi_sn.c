@@ -48,7 +48,7 @@ void sn_teardown_msi_irq(unsigned int irq)
 
 	(*provider->dma_unmap)(pdev,
 			       sn_msi_info[irq].pci_addr,
-			       PCI_DMA_FROMDEVICE);
+			       DMA_FROM_DEVICE);
 	sn_msi_info[irq].pci_addr = 0;
 
 	bussoft = SN_PCIDEV_BUSSOFT(pdev);
@@ -181,7 +181,7 @@ static int sn_set_msi_irq_affinity(struct irq_data *data,
 	provider = SN_PCIDEV_BUSPROVIDER(pdev);
 
 	bus_addr = (u64)(msg.address_hi) << 32 | (u64)(msg.address_lo);
-	(*provider->dma_unmap)(pdev, bus_addr, PCI_DMA_FROMDEVICE);
+	(*provider->dma_unmap)(pdev, bus_addr, DMA_FROM_DEVICE);
 	sn_msi_info[irq].pci_addr = 0;
 
 	nasid = cpuid_to_nasid(cpu);
