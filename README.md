@@ -50,7 +50,7 @@ Work in progress — header compatibility fixes for modern kernel APIs are ongoi
 - `task_thread_info` conflict with `include/linux/sched.h` pending resolution
 
 **Patches:**
-- All current saved listed patches are in patch-series/ 
+- All current saved listed patches are in custom-linux-sgi-sn2-patch-series/
     and each represent an individual patch to apply to mainline kernel.
 - The code you see in this repo has the latest commited changes
 
