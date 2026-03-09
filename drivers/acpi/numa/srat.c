@@ -7,8 +7,8 @@
 
 #define pr_fmt(fmt) "ACPI: " fmt
 
-#include <linux/numa_memblks.h>
 #include <linux/numa.h>
+#include <linux/numa_memblks.h>
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/kernel.h>

@@ -59,7 +59,7 @@ static efi_system_table_t *efi_systab_ia64;
 
 static __initdata unsigned long palo_phys;
 
-static efi_config_table_type_t arch_tables[] = {
+static __initdata efi_config_table_type_t arch_tables[] = {
 	{
 		.guid = PROCESSOR_ABSTRACTION_LAYER_OVERWRITE_GUID,
 		.ptr = &palo_phys,

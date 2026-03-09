@@ -20,7 +20,6 @@
 #include <linux/interrupt.h>
 #include <linux/efi.h>
 #include <linux/timex.h>
-extern void tick_do_timer(unsigned long ticks);
 #include "../../../kernel/time/timekeeping.h"
 #include <linux/timekeeper_internal.h>
 #include <linux/platform_device.h>
@@ -184,7 +183,7 @@ timer_interrupt (int irq, void *dev_id)
 		new_itm += local_cpu_data->itm_delta;
 
 		if (smp_processor_id() == time_keeper_id)
-			tick_do_timer(1);
+			do_timer(1);
 
 		local_cpu_data->itm_next = new_itm;
 

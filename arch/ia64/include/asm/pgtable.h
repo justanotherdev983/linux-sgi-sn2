@@ -198,12 +198,6 @@
 
 #define pmd_pfn(pmd) page_to_pfn(pmd_page(pmd))
 
-
-/*
- * Some definitions to translate between mem_map, PTEs, and page addresses:
- */
-
-
 /* Quick test to see if ADDR is a (potentially) valid physical address. */
 static inline long
 ia64_phys_addr_valid (unsigned long addr)
