@@ -53,7 +53,11 @@ extern void ia64_xchg_called_with_bad_pointer(void);
 	__xchg_result;							\
 })
 
+<<<<<<< ours
 #define xchg(ptr, x)							\
+=======
+#define arch_xchg(ptr, x)							\
+>>>>>>> theirs
 ((__typeof__(*(ptr))) __xchg((unsigned long) (x), (ptr), sizeof(*(ptr))))
 
 /*
@@ -112,9 +116,15 @@ extern long ia64_cmpxchg_called_with_bad_pointer(void);
 	(__typeof__(old)) _r_;						\
 })
 
+<<<<<<< ours
 #define cmpxchg_acq(ptr, o, n)	\
 	ia64_cmpxchg(acq, (ptr), (o), (n), sizeof(*(ptr)))
 #define cmpxchg_rel(ptr, o, n)	\
+=======
+#define arch_cmpxchg_acq(ptr, o, n)	\
+	ia64_cmpxchg(acq, (ptr), (o), (n), sizeof(*(ptr)))
+#define arch_cmpxchg_rel(ptr, o, n)	\
+>>>>>>> theirs
 	ia64_cmpxchg(rel, (ptr), (o), (n), sizeof(*(ptr)))
 
 /*
@@ -127,11 +137,19 @@ extern long ia64_cmpxchg_called_with_bad_pointer(void);
  */
 
 /* for compatibility with other platforms: */
+<<<<<<< ours
 #define cmpxchg(ptr, o, n)	cmpxchg_acq((ptr), (o), (n))
 #define cmpxchg64(ptr, o, n)	cmpxchg_acq((ptr), (o), (n))
 
 #define cmpxchg_local		cmpxchg
 #define cmpxchg64_local		cmpxchg64
+=======
+#define arch_cmpxchg(ptr, o, n)		arch_cmpxchg_acq((ptr), (o), (n))
+#define arch_cmpxchg64(ptr, o, n)	arch_cmpxchg_acq((ptr), (o), (n))
+
+#define arch_cmpxchg_local		arch_cmpxchg
+#define arch_cmpxchg64_local		arch_cmpxchg64
+>>>>>>> theirs
 
 #ifdef CONFIG_IA64_DEBUG_CMPXCHG
 # define CMPXCHG_BUGCHECK_DECL	int _cmpxchg_bugcheck_count = 128;

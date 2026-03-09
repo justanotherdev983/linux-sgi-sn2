@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0 */
+#include <linux/percpu-rwsem.h>
 #ifndef _LINUX_FS_SUPER_TYPES_H
 #define _LINUX_FS_SUPER_TYPES_H
 

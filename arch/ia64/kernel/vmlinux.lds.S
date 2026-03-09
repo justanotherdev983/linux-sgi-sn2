@@ -7,6 +7,8 @@
 
 #include <asm-generic/vmlinux.lds.h>
 
+#undef ALIGN 
+
 OUTPUT_FORMAT("elf64-ia64-little")
 OUTPUT_ARCH(ia64)
 ENTRY(phys_start)
@@ -33,11 +35,12 @@ SECTIONS {
 	}
 
 	v = PAGE_OFFSET; /* this symbol is here to make debugging easier... */
-	phys_start = _start - LOAD_OFFSET;
+
 
 	code : {
 	} :code
 	. = KERNEL_START;
+	phys_start = ABSOLUTE(. - LOAD_OFFSET);
 
 	_text = .;
 	_stext = .;
@@ -48,9 +51,11 @@ SECTIONS {
 		__end_ivt_text = .;
 		TEXT_TEXT
 		SCHED_TEXT
-		CPUIDLE_TEXT
+		NOINSTR_TEXT
 		LOCK_TEXT
 		KPROBES_TEXT
+		IRQENTRY_TEXT
+		SOFTIRQENTRY_TEXT
 		*(.gnu.linkonce.t*)
 	}
 
@@ -106,7 +111,7 @@ SECTIONS {
 	code_continues2 : {
 	} : code
 
-	RODATA
+	RO_DATA(PAGE_SIZE)
 
 	.opd : AT(ADDR(.opd) - LOAD_OFFSET) {
 		__start_opd = .;
@@ -175,13 +180,14 @@ SECTIONS {
 
 	/* Per-cpu data: */
 	. = ALIGN(PERCPU_PAGE_SIZE);
-	PERCPU_VADDR(SMP_CACHE_BYTES, PERCPU_ADDR, :percpu)
-	__phys_per_cpu_start = __per_cpu_load;
-	/*
-	 * ensure percpu data fits
-	 * into percpu page size
-	 */
-	. = __phys_per_cpu_start + PERCPU_PAGE_SIZE;
+	__per_cpu_load = .;
+	.data..percpu PERCPU_ADDR : AT(__per_cpu_load - LOAD_OFFSET) {
+		__per_cpu_start = .;
+		PERCPU_INPUT(SMP_CACHE_BYTES)
+		__per_cpu_end = .;
+	} :percpu
+	__phys_per_cpu_start = __per_cpu_load - LOAD_OFFSET;
+	. = __per_cpu_load + PERCPU_PAGE_SIZE;
 
 	data : {
 	} :data

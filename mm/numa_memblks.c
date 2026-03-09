@@ -124,6 +124,7 @@ void __init numa_set_distance(int from, int to, int distance)
 	numa_distance[from * numa_distance_cnt + to] = distance;
 }
 
+#ifndef CONFIG_IA64
 int __node_distance(int from, int to)
 {
 	if (from >= numa_distance_cnt || to >= numa_distance_cnt)
@@ -131,6 +132,7 @@ int __node_distance(int from, int to)
 	return numa_distance[from * numa_distance_cnt + to];
 }
 EXPORT_SYMBOL(__node_distance);
+#endif
 
 static int __init numa_add_memblk_to(int nid, u64 start, u64 end,
 				     struct numa_meminfo *mi)

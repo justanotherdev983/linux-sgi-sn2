@@ -132,10 +132,10 @@ csum_partial_copy_from_user(const void __user *src, void *dst,
 EXPORT_SYMBOL(csum_partial_copy_from_user);
 
 __wsum
-csum_partial_copy_nocheck(const void *src, void *dst, int len, __wsum sum)
+csum_partial_copy_nocheck(const void *src, void *dst, int len)
 {
 	return csum_partial_copy_from_user((__force const void __user *)src,
-					   dst, len, sum, NULL);
+					   dst, len, 0, NULL);
 }
 
 EXPORT_SYMBOL(csum_partial_copy_nocheck);

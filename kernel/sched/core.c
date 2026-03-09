@@ -8935,7 +8935,7 @@ void normalize_rt_tasks(void)
 
 #endif /* CONFIG_MAGIC_SYSRQ */
 
-#ifdef CONFIG_KGDB_KDB
+#if defined(CONFIG_KGDB_KDB) || defined(CONFIG_IA64)
 /*
  * These functions are only useful for KDB.
  *
@@ -8958,6 +8958,13 @@ struct task_struct *curr_task(int cpu)
 {
 	return cpu_curr(cpu);
 }
+
+#ifdef CONFIG_IA64
+void ia64_set_curr_task(int cpu, struct task_struct *p)
+{
+	cpu_curr(cpu) = p;
+}
+#endif /* CONFIG_IA64 */
 
 #endif /* CONFIG_KGDB_KDB */
 

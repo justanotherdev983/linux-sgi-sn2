@@ -14,6 +14,7 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
+#include <linux/io.h>
 #include <linux/kobject.h>
 #include <linux/module.h>
 #include <linux/init.h>
@@ -22,7 +23,6 @@
 #include <linux/efi.h>
 #include <linux/of.h>
 #include <linux/initrd.h>
-#include <linux/io.h>
 #include <linux/kexec.h>
 #include <linux/platform_device.h>
 #include <linux/random.h>
@@ -973,6 +973,7 @@ char * __init efi_md_typeattr_format(char *buf, size_t size,
 	return buf;
 }
 
+#ifndef CONFIG_IA64
 /*
  * efi_mem_attributes - lookup memmap attributes for physical address
  * @phys_addr: the physical address to lookup
@@ -1020,6 +1021,7 @@ int efi_mem_type(unsigned long phys_addr)
 	}
 	return -EINVAL;
 }
+#endif /* !CONFIG_IA64 */
 
 int efi_status_to_err(efi_status_t status)
 {

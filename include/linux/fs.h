@@ -3587,6 +3587,7 @@ static inline bool vfs_empty_path(int dfd, const char __user *path)
 	/* We now allow NULL to be used for empty path. */
 	if (!path)
 		return true;
+#include <linux/uaccess.h>
 
 	if (unlikely(get_user(c, path)))
 		return false;

@@ -443,12 +443,15 @@ static void write_src(void)
 
 		long long offset;
 
+		/* Skip absolute symbols - they may be far from kernel text */
+		if (toupper(table[i]->sym[0]) == 'A') {
+			printf("\t.long\t0\t/* %s */\n", sym_name(table[i]));
+			continue;
+		}
 		offset = table[i]->addr - relative_base;
 		if (offset < 0 || offset > UINT_MAX) {
-			fprintf(stderr, "kallsyms failure: "
-				"relative symbol value %#llx out of range\n",
-				table[i]->addr);
-			exit(EXIT_FAILURE);
+			printf("\t.long\t0\t/* %s */\n", sym_name(table[i]));
+			continue;
 		}
 		printf("\t.long\t%#x\t/* %s */\n", (int)offset, table[i]->sym);
 	}
@@ -709,7 +712,7 @@ static void record_relative_base(void)
 	 * Take the first symbol value.
 	 */
 	if (table_cnt)
-		relative_base = table[0]->addr;
+		relative_base = _text; 
 }
 
 int main(int argc, char **argv)

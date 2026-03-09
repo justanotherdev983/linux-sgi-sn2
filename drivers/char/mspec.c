@@ -249,11 +249,8 @@ mspec_mmap(struct file *file, struct vm_area_struct *vma,
 	if (vma->vm_pgoff != 0)
 		return -EINVAL;
 
-	if ((vma->vm_flags & VM_SHARED) == 0)
-		return -EINVAL;
-
-	if ((vma->vm_flags & VM_WRITE) == 0)
-		return -EPERM;
+	vm_flags_clear(vma, VM_SHARED); 
+	vm_flags_clear(vma, VM_WRITE);
 
 	pages = vma_pages(vma);
 	vdata_size = sizeof(struct vma_data) + pages * sizeof(long);
@@ -271,7 +268,10 @@ mspec_mmap(struct file *file, struct vm_area_struct *vma,
 	refcount_set(&vdata->refcnt, 1);
 	vma->vm_private_data = vdata;
 
-	vma->vm_flags |= VM_IO | VM_PFNMAP | VM_DONTEXPAND | VM_DONTDUMP;
+	vm_flags_set(vma, VM_IO);
+	vm_flags_set(vma, VM_PFNMAP);
+	vm_flags_set(vma, VM_DONTEXPAND);
+	vm_flags_set(vma, VM_DONTDUMP);
 	if (vdata->type == MSPEC_FETCHOP || vdata->type == MSPEC_UNCACHED)
 		vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 	vma->vm_ops = &mspec_vm_ops;

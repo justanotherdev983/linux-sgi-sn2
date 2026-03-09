@@ -46,6 +46,12 @@ struct page_frag {
 
 #define PAGE_FRAG_CACHE_MAX_SIZE	__ALIGN_MASK(32768, ~PAGE_MASK)
 #define PAGE_FRAG_CACHE_MAX_ORDER	get_order(PAGE_FRAG_CACHE_MAX_SIZE)
+
+#ifdef CONFIG_IA64_PAGE_SIZE_64KB
+#undef PAGE_FRAG_CACHE_MAX_ORDER
+#define PAGE_FRAG_CACHE_MAX_ORDER	0
+#endif
+
 struct page_frag_cache {
 	/* encoded_page consists of the virtual address, pfmemalloc bit and
 	 * order of a page.

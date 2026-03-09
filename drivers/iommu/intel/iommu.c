@@ -31,6 +31,12 @@
 #include "pasid.h"
 #include "perfmon.h"
 
+// XXX: Hacky fix
+#ifdef CONFIG_IA64
+static bool iommu_dma_forcedac = false;
+static inline int arch_rmrr_sanity_check(void *rmrr) { return 0; }
+#endif
+
 #define ROOT_SIZE		VTD_PAGE_SIZE
 #define CONTEXT_SIZE		VTD_PAGE_SIZE
 

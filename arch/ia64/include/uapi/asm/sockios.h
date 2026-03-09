@@ -18,4 +18,7 @@
 #define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
 #define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
 
+//#define SIOCGSTAMP_OLD    SIOCGSTAMP
+//#define SIOCGSTAMPNS_OLD  SIOCGSTAMPNS
+
 #endif /* _ASM_IA64_SOCKIOS_H */

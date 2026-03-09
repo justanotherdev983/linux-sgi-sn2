@@ -37,6 +37,7 @@
 #include <linux/crash_dump.h>
 #include <linux/iommu-helper.h>
 #include <linux/dma-mapping.h>
+#include <linux/dma-map-ops.h>
 #include <linux/prefetch.h>
 
 #include <asm/delay.h>		/* ia64_get_itc() */
@@ -46,7 +47,7 @@
 
 #include <asm/acpi-ext.h>
 
-extern int swiotlb_late_init_with_default_size (size_t size);
+extern int swiotlb_init_late(size_t size, gfp_t gfp_mask, int (*remap)(void *, unsigned long));
 
 #define PFX "IOC: "
 
@@ -2078,8 +2079,7 @@ sba_init(void)
 	 * a successful kdump kernel boot is to use the swiotlb.
 	 */
 	if (is_kdump_kernel()) {
-		dma_ops = NULL;
-		if (swiotlb_late_init_with_default_size(64 * (1<<20)) != 0)
+		if (swiotlb_init_late(64 * (1<<20), GFP_DMA, NULL) != 0)
 			panic("Unable to initialize software I/O TLB:"
 				  " Try machvec=dig boot option");
 		machvec_init("dig");
@@ -2100,8 +2100,7 @@ sba_init(void)
 		 * If we didn't find something sba_iommu can claim, we
 		 * need to setup the swiotlb and switch to the dig machvec.
 		 */
-		dma_ops = NULL;
-		if (swiotlb_late_init_with_default_size(64 * (1<<20)) != 0)
+		if (swiotlb_init_late(64 * (1<<20), GFP_DMA, NULL) != 0)
 			panic("Unable to find SBA IOMMU or initialize "
 			      "software I/O TLB: Try machvec=dig boot option");
 		machvec_init("dig");
@@ -2181,8 +2180,6 @@ __setup("sbapagesize=",sba_page_override);
 const struct dma_map_ops sba_dma_ops = {
 	.alloc			= sba_alloc_coherent,
 	.free			= sba_free_coherent,
-	.map_page		= sba_map_page,
-	.unmap_page		= sba_unmap_page,
 	.map_sg			= sba_map_sg_attrs,
 	.unmap_sg		= sba_unmap_sg_attrs,
 	.dma_supported		= sba_dma_supported,
@@ -2190,5 +2187,6 @@ const struct dma_map_ops sba_dma_ops = {
 
 void sba_dma_init(void)
 {
-	dma_ops = &sba_dma_ops;
+	//set_dma_ops(dev, &sba_dma_ops); //XXX: Hacky fix. need to make this functional 
+	//in arch/ia64/mm/init.c BOU
 }

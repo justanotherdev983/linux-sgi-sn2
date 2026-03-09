@@ -80,7 +80,7 @@ static int __init topology_init(void)
 	 * MCD - Do we want to register all ONLINE nodes, or all POSSIBLE nodes?
 	 */
 	for_each_online_node(i) {
-		if ((err = register_one_node(i)))
+		if ((err = register_node(i)))
 			goto out;
 	}
 #endif
@@ -258,15 +258,17 @@ define_one_ro(number_of_sets);
 define_one_ro(shared_cpu_map);
 define_one_ro(attributes);
 
-static struct attribute * cache_default_attrs[] = {
-	&type.attr,
-	&level.attr,
-	&coherency_line_size.attr,
-	&ways_of_associativity.attr,
-	&attributes.attr,
-	&size.attr,
-	&number_of_sets.attr,
-	&shared_cpu_map.attr,
+static struct attribute *cache_default_attrs_list[] = {
+	&type.attr, &level.attr, &coherency_line_size.attr,
+	&ways_of_associativity.attr, &attributes.attr,
+	&size.attr, &number_of_sets.attr, &shared_cpu_map.attr,
+	NULL
+};
+static struct attribute_group cache_attr_group = {
+	.attrs = cache_default_attrs_list
+};
+static const struct attribute_group *cache_default_groups[] = {
+	&cache_attr_group,
 	NULL
 };
 
@@ -289,7 +291,7 @@ static const struct sysfs_ops cache_sysfs_ops = {
 
 static struct kobj_type cache_ktype = {
 	.sysfs_ops	= &cache_sysfs_ops,
-	.default_attrs	= cache_default_attrs,
+	.default_groups	= cache_default_groups,
 };
 
 static struct kobj_type cache_ktype_percpu_entry = {

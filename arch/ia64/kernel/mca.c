@@ -96,6 +96,7 @@
 #include <asm/ptrace.h>
 #include <asm/sal.h>
 #include <asm/mca.h>
+extern void *efi_get_pal_addr(void);
 #include <asm/kexec.h>
 
 #include <asm/irq.h>
@@ -1640,10 +1641,10 @@ default_monarch_init_process(struct notifier_block *self, unsigned long val, voi
 	}
 	printk("\n\n");
 	if (read_trylock(&tasklist_lock)) {
-		do_each_thread (g, t) {
+		for_each_process_thread(g, t) {
 			printk("\nBacktrace of pid %d (%s)\n", t->pid, t->comm);
-			show_stack(t, NULL);
-		} while_each_thread (g, t);
+			show_stack(t, NULL, KERN_DEFAULT);
+		}
 		read_unlock(&tasklist_lock);
 	}
 	/* FIXME: This will not restore zapped printk locks. */
@@ -1829,8 +1830,8 @@ format_mca_init_stack(void *mca_data, unsigned long offset,
 	ti->task = p;
 	ti->cpu = cpu;
 	p->stack = ti;
-	p->state = TASK_UNINTERRUPTIBLE;
-	cpumask_set_cpu(cpu, &p->cpus_allowed);
+	p->__state = TASK_UNINTERRUPTIBLE;
+	cpumask_set_cpu(cpu, p->cpus_ptr);
 	INIT_LIST_HEAD(&p->tasks);
 	p->parent = p->real_parent = p->group_leader = p;
 	INIT_LIST_HEAD(&p->children);
@@ -2125,7 +2126,7 @@ ia64_mca_late_init(void)
 			if (irq > 0) {
 				cpe_poll_enabled = 0;
 				irq_set_status_flags(irq, IRQ_PER_CPU);
-				setup_irq(irq, &mca_cpe_irqaction);
+				(void)request_irq(irq, mca_cpe_irqaction.handler, mca_cpe_irqaction.flags, mca_cpe_irqaction.name, NULL);
 				ia64_cpe_irq = irq;
 				ia64_mca_register_cpev(cpe_vector);
 				IA64_MCA_DEBUG("%s: CPEI/P setup and enabled.\n",

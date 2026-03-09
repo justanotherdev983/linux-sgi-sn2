@@ -16,7 +16,7 @@
 #include <asm/sn/pcibus_provider_defs.h>
 #include <asm/sn/pcidev.h>
 #include <asm/sn/sn_sal.h>
-#include "xtalk/hubdev.h"
+#include "../include/xtalk/hubdev.h"
 
 /*
  * The code in this file will only be executed when running with

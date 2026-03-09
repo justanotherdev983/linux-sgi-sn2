@@ -4,7 +4,9 @@
 
 #include <linux/mm_types.h>
 
-#include <linux/fs.h> /* only for vma_is_dax() */
+/* forward decl to break circular dep */
+struct vm_area_struct;
+static inline bool vma_is_dax(const struct vm_area_struct *vma);
 #include <linux/kobject.h>
 
 vm_fault_t do_huge_pmd_anonymous_page(struct vm_fault *vmf);

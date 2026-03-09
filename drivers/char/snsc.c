@@ -385,7 +385,7 @@ scdrv_init(void)
 
 	event_nasid = ia64_sn_get_console_nasid();
 
-	snsc_class = class_create(THIS_MODULE, SYSCTL_BASENAME);
+	snsc_class = class_create(SYSCTL_BASENAME);
 	if (IS_ERR(snsc_class)) {
 		printk("%s: failed to allocate class\n", __func__);
 		return PTR_ERR(snsc_class);

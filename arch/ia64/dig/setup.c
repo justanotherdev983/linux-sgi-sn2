@@ -35,7 +35,7 @@ dig_setup (char **cmdline_p)
 	 * is physical disk 1 partition 1 and the Linux root disk is
 	 * physical disk 1 partition 2.
 	 */
-	ROOT_DEV = Root_SDA2;		/* default to second partition on first drive */
+	ROOT_DEV = MKDEV(8, 2);		/* default to second partition on first drive */
 
 #ifdef CONFIG_SMP
 	init_smp_config();

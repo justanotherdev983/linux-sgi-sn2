@@ -35,6 +35,8 @@
 # define KERNEL_STACK_SIZE_ORDER		0
 #endif
 
+#define THREAD_SIZE_ORDER	KERNEL_STACK_SIZE_ORDER
+
 #define IA64_RBS_OFFSET			((IA64_TASK_SIZE + IA64_THREAD_INFO_SIZE + 31) & ~31)
 #define IA64_STK_OFFSET			((1 << KERNEL_STACK_SIZE_ORDER)*PAGE_SIZE)
 
@@ -136,9 +138,9 @@ static inline long regs_return_value(struct pt_regs *regs)
   extern void ia64_decrement_ip (struct pt_regs *pt);
 
   extern void ia64_ptrace_stop(void);
-  #define arch_ptrace_stop(code, info) \
+  #define arch_ptrace_stop() \
 	ia64_ptrace_stop()
-  #define arch_ptrace_stop_needed(code, info) \
+  #define arch_ptrace_stop_needed() \
 	(!test_thread_flag(TIF_RESTORE_RSE))
 
   extern void ptrace_attach_sync_user_rbs (struct task_struct *);

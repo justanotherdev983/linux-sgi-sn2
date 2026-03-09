@@ -10,12 +10,12 @@
 #include <linux/interrupt.h>
 #include <asm/delay.h>
 #include <asm/sn/sn_sal.h>
-#include "ioerror.h"
+#include "../include/ioerror.h"
 #include <asm/sn/addrs.h>
 #include <asm/sn/shubio.h>
 #include <asm/sn/geo.h>
-#include "xtalk/xwidgetdev.h"
-#include "xtalk/hubdev.h"
+#include "../include/xtalk/xwidgetdev.h"
+#include "../include/xtalk/hubdev.h"
 #include <asm/sn/bte.h>
 
 void hubiio_crb_error_handler(struct hubdev_info *hubdev_info);

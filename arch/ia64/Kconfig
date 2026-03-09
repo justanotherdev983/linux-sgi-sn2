@@ -10,6 +10,7 @@ config IA64
 	bool
 	select ARCH_MIGHT_HAVE_PC_PARPORT
 	select ARCH_MIGHT_HAVE_PC_SERIO
+	select ARCH_HAS_VM_GET_PAGE_PROT
 	select ACPI_SYSTEM_POWER_STATES_SUPPORT if ACPI
 	select ARCH_MIGHT_HAVE_ACPI_PDC if ACPI
 	select PCI_DOMAINS if PCI
@@ -26,6 +27,8 @@ config IA64
 	select TTY
 	select HAVE_ARCH_TRACEHOOK
 	select HAVE_MEMBLOCK_NODE_MAP
+	select CRASH_RESERVE if KEXEC
+	select NUMA_MEMBLKS if NUMA
 	select HAVE_VIRT_CPU_ACCOUNTING
 	select ARCH_HAS_DMA_COHERENT_TO_PFN if SWIOTLB
 	select ARCH_HAS_SYNC_DMA_FOR_CPU if SWIOTLB
@@ -298,8 +301,8 @@ config IOSAPIC
 
 config FORCE_MAX_ZONEORDER
 	int "MAX_ORDER (11 - 17)"  if !HUGETLB_PAGE
-	range 11 17  if !HUGETLB_PAGE
-	default "17" if HUGETLB_PAGE
+	range 10 17  if !HUGETLB_PAGE
+	default "11" if HUGETLB_PAGE
 	default "11"
 
 config SMP
@@ -560,3 +563,8 @@ config MSPEC
 	  If you have an ia64 and you want to enable memory special
 	  operations support (formerly known as fetchop), say Y here,
 	  otherwise say N.
+
+config GENERIC_STRNCPY_FROM_USER
+	def_bool n
+config GENERIC_STRNLEN_USER
+	def_bool n

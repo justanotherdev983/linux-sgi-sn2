@@ -101,6 +101,17 @@ extern int ia64_pfn_valid (unsigned long pfn);
 # define ia64_pfn_valid(pfn) 1
 #endif
 
+<<<<<<< ours
+=======
+#ifdef CONFIG_FLATMEM
+# define pfn_valid(pfn)		(((pfn) < max_mapnr) && ia64_pfn_valid(pfn))
+#elif defined(CONFIG_DISCONTIGMEM)
+extern unsigned long min_low_pfn;
+extern unsigned long max_low_pfn;
+# define pfn_valid(pfn)		(((pfn) >= min_low_pfn) && ((pfn) < max_low_pfn) && ia64_pfn_valid(pfn))
+#endif
+
+>>>>>>> theirs
 #ifdef CONFIG_VIRTUAL_MEM_MAP
 extern struct page *vmem_map;
 #ifdef CONFIG_DISCONTIGMEM
@@ -114,6 +125,7 @@ extern struct page *vmem_map;
 # include <asm-generic/memory_model.h>
 #endif
 
+<<<<<<< ours
 #ifdef CONFIG_FLATMEM
 # define pfn_valid(pfn)		(((pfn) < max_mapnr) && ia64_pfn_valid(pfn))
 #elif defined(CONFIG_DISCONTIGMEM)
@@ -123,6 +135,8 @@ extern unsigned long max_low_pfn;
 #endif
 
 #define page_to_phys(page)	(page_to_pfn(page) << PAGE_SHIFT)
+=======
+>>>>>>> theirs
 #define virt_to_page(kaddr)	pfn_to_page(__pa(kaddr) >> PAGE_SHIFT)
 #define pfn_to_kaddr(pfn)	__va((pfn) << PAGE_SHIFT)
 

@@ -41,11 +41,11 @@ static int coherence_id_show(struct seq_file *s, void *p)
 extern int sn_topology_open(struct inode *, struct file *);
 extern int sn_topology_release(struct inode *, struct file *);
 
-static const struct file_operations proc_sn_topo_fops = {
-	.open		= sn_topology_open,
-	.read		= seq_read,
-	.llseek		= seq_lseek,
-	.release	= sn_topology_release,
+static const struct proc_ops proc_sn_topo_fops = {
+    .proc_open    = sn_topology_open,
+    .proc_read    = seq_read,
+    .proc_lseek   = seq_lseek,
+    .proc_release = sn_topology_release,
 };
 
 void register_sn_procfs(void)

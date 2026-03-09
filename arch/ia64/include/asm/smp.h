@@ -122,7 +122,8 @@ extern void __init init_smp_config (void);
 extern void smp_do_timer (struct pt_regs *regs);
 
 extern irqreturn_t handle_IPI(int irq, void *dev_id);
-extern void smp_send_reschedule (int cpu);
+
+
 extern void identify_siblings (struct cpuinfo_ia64 *);
 extern int is_multithreading_enabled(void);
 

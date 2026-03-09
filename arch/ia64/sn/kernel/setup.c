@@ -49,8 +49,8 @@
 #include <asm/sn/sn_sal.h>
 #include <asm/sn/geo.h>
 #include <asm/sn/sn_feature_sets.h>
-#include "xtalk/xwidgetdev.h"
-#include "xtalk/hubdev.h"
+#include "../include/xtalk/xwidgetdev.h"
+#include "../include/xtalk/hubdev.h"
 #include <asm/sn/klconfig.h>
 
 
@@ -465,7 +465,7 @@ void __init sn_setup(char **cmdline_p)
 	 * we set the default root device to /dev/hda
 	 * to make simulation easy
 	 */
-	ROOT_DEV = Root_HDA1;
+	ROOT_DEV = 0;
 
 	/*
 	 * Create the PDAs and NODEPDAs for all the cpus.
