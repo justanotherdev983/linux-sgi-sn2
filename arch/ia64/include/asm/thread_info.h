@@ -59,7 +59,11 @@ struct thread_info {
 #else
 #define current_thread_info()	((struct thread_info *) 0)
 #endif
+
+// BOU: XXX maybe we should instead check ifdef and the nundef and define our own? hmm
+#ifndef task_stack_page
 #define task_stack_page(tsk)	((void *)(tsk))
+#endif
 
 #endif /* !__ASSEMBLY */
 
