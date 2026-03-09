@@ -488,13 +488,13 @@ module_frob_arch_sections (Elf_Ehdr *ehdr, Elf_Shdr *sechdrs, char *secstrings,
 static inline int
 in_init (const struct module *mod, uint64_t addr)
 {
-	return addr - (uint64_t) mod->init_layout.base < mod->init_layout.size;
+	return addr - (uint64_t) mod->mem[MOD_INIT_TEXT].base < mod->mem[MOD_INIT_TEXT].size;
 }
 
 static inline int
 in_core (const struct module *mod, uint64_t addr)
 {
-	return addr - (uint64_t) mod->core_layout.base < mod->core_layout.size;
+	return addr - (uint64_t) mod->mem[MOD_TEXT].base < mod->mem[MOD_TEXT].size;
 }
 
 static inline int
@@ -677,7 +677,7 @@ do_reloc (struct module *mod, uint8_t r_type, Elf64_Sym *sym, uint64_t addend,
 		break;
 
 	      case RV_BDREL:
-		val -= (uint64_t) (in_init(mod, val) ? mod->init_layout.base : mod->core_layout.base);
+		val -= (uint64_t) (in_init(mod, val) ? mod->mem[MOD_INIT_TEXT].base : mod->mem[MOD_TEXT].base);
 		break;
 
 	      case RV_LTV:
@@ -812,15 +812,15 @@ apply_relocate_add (Elf64_Shdr *sechdrs, const char *strtab, unsigned int symind
 		 *     addresses have been selected...
 		 */
 		uint64_t gp;
-		if (mod->core_layout.size > MAX_LTOFF)
+		if (mod->mem[MOD_TEXT].size > MAX_LTOFF)
 			/*
 			 * This takes advantage of fact that SHF_ARCH_SMALL gets allocated
 			 * at the end of the module.
 			 */
-			gp = mod->core_layout.size - MAX_LTOFF / 2;
+			gp = mod->mem[MOD_TEXT].size - MAX_LTOFF / 2;
 		else
-			gp = mod->core_layout.size / 2;
-		gp = (uint64_t) mod->core_layout.base + ((gp + 7) & -8);
+			gp = mod->mem[MOD_TEXT].size / 2;
+		gp = (uint64_t) mod->mem[MOD_TEXT].base + ((gp + 7) & -8);
 		mod->arch.gp = gp;
 		DEBUGP("%s: placing gp at 0x%lx\n", __func__, gp);
 	}

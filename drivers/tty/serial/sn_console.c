@@ -18,6 +18,7 @@
  * http://oss.sgi.com/projects/GenInfo/NoticeExplan
  */
 
+#include <linux/timer.h>
 #include <linux/interrupt.h>
 #include <linux/tty.h>
 #include <linux/tty_flip.h>
@@ -30,6 +31,7 @@
 #include <linux/delay.h> /* for mdelay */
 #include <linux/miscdevice.h>
 #include <linux/serial_core.h>
+#include <linux/kfifo.h>
 
 #include <asm/io.h>
 #include <asm/sn/simulator.h>
@@ -66,6 +68,8 @@ static char sysrq_serial_str[] = "\eSYS";
 static char *sysrq_serial_ptr = sysrq_serial_str;
 static unsigned long sysrq_requested;
 #endif /* CONFIG_MAGIC_SYSRQ */
+
+static void sn_sal_console_write(struct console *co, const char *s, unsigned count);
 
 /*
  * Port definition - this kinda drives it all
@@ -335,7 +339,7 @@ static int snp_startup(struct uart_port *port)
  */
 static void
 snp_set_termios(struct uart_port *port, struct ktermios *termios,
-		struct ktermios *old)
+		const struct ktermios *old)
 {
 }
 
@@ -508,73 +512,30 @@ sn_receive_chars(struct sn_cons_port *port, unsigned long flags)
  */
 static void sn_transmit_chars(struct sn_cons_port *port, int raw)
 {
-	int xmit_count, tail, head, loops, ii;
-	int result;
-	char *start;
-	struct circ_buf *xmit;
-
-	if (!port)
-		return;
+	unsigned char c;
 
 	BUG_ON(!port->sc_is_asynch);
 
-	if (port->sc_port.state) {
-		/* We're initialized, using serial core infrastructure */
-		xmit = &port->sc_port.state->xmit;
-	} else {
-		/* Probably sn_sal_switch_to_asynch has been run but serial core isn't
-		 * initialized yet.  Just return.  Writes are going through
-		 * sn_sal_console_write (due to register_console) at this time.
-		 */
+	if (!port->sc_port.state)
 		return;
-	}
 
-	if (uart_circ_empty(xmit) || uart_tx_stopped(&port->sc_port)) {
-		/* Nothing to do. */
+	if (kfifo_is_empty(&port->sc_port.state->port.xmit_fifo) ||
+	    uart_tx_stopped(&port->sc_port)) {
 		ia64_sn_console_intr_disable(SAL_CONSOLE_INTR_XMIT);
 		return;
 	}
 
-	head = xmit->head;
-	tail = xmit->tail;
-	start = &xmit->buf[tail];
-
-	/* twice around gets the tail to the end of the buffer and
-	 * then to the head, if needed */
-	loops = (head < tail) ? 2 : 1;
-
-	for (ii = 0; ii < loops; ii++) {
-		xmit_count = (head < tail) ?
-		    (UART_XMIT_SIZE - tail) : (head - tail);
-
-		if (xmit_count > 0) {
-			if (raw == TRANSMIT_RAW)
-				result =
-				    port->sc_ops->sal_puts_raw(start,
-							       xmit_count);
-			else
-				result =
-				    port->sc_ops->sal_puts(start, xmit_count);
-#ifdef DEBUG
-			if (!result)
-				DPRINTF("`");
-#endif
-			if (result > 0) {
-				xmit_count -= result;
-				port->sc_port.icount.tx += result;
-				tail += result;
-				tail &= UART_XMIT_SIZE - 1;
-				xmit->tail = tail;
-				start = &xmit->buf[tail];
-			}
-		}
+	while (kfifo_get(&port->sc_port.state->port.xmit_fifo, &c)) {
+		/* Assuming sal_console is globally available here as in original */
+		sn_sal_console_write(NULL, &c, 1);
+		port->sc_port.icount.tx++;
 	}
 
-	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
+	if (kfifo_len(&port->sc_port.state->port.xmit_fifo) < WAKEUP_CHARS)
 		uart_write_wakeup(&port->sc_port);
 
-	if (uart_circ_empty(xmit))
-		snp_stop_tx(&port->sc_port);	/* no-op for us */
+	if (kfifo_is_empty(&port->sc_port.state->port.xmit_fifo))
+		ia64_sn_console_intr_disable(SAL_CONSOLE_INTR_XMIT);
 }
 
 /**
@@ -614,7 +575,7 @@ static irqreturn_t sn_sal_interrupt(int irq, void *dev_id)
  */
 static void sn_sal_timer_poll(struct timer_list *t)
 {
-	struct sn_cons_port *port = from_timer(port, t, sc_timer);
+	struct sn_cons_port *port = container_of(t, struct sn_cons_port, sc_timer);
 	unsigned long flags;
 
 	if (!port)
@@ -878,8 +839,8 @@ sn_sal_console_write(struct console *co, const char *s, unsigned count)
 	BUG_ON(!port->sc_is_asynch);
 
 	/* We can't look at the xmit buffer if we're not registered with serial core
-	 *  yet.  So only do the fancy recovery after registering
-	 */
+	*  yet.  So only do the fancy recovery after registering
+	*/
 	if (!port->sc_port.state) {
 		/* Not yet registered with serial core - simple case */
 		puts_raw_fixed(port->sc_ops->sal_puts_raw, s, count);
@@ -887,22 +848,21 @@ sn_sal_console_write(struct console *co, const char *s, unsigned count)
 	}
 
 	/* somebody really wants this output, might be an
-	 * oops, kdb, panic, etc.  make sure they get it. */
+	* oops, kdb, panic, etc.  make sure they get it. */
 	if (!spin_trylock_irqsave(&port->sc_port.lock, flags)) {
-		int lhead = port->sc_port.state->xmit.head;
-		int ltail = port->sc_port.state->xmit.tail;
+		unsigned int llen = kfifo_len(&port->sc_port.state->port.xmit_fifo);
 		int counter, got_lock = 0;
 
 		/*
-		 * We attempt to determine if someone has died with the
-		 * lock. We wait ~20 secs after the head and tail ptrs
-		 * stop moving and assume the lock holder is not functional
-		 * and plow ahead. If the lock is freed within the time out
-		 * period we re-get the lock and go ahead normally. We also
-		 * remember if we have plowed ahead so that we don't have
-		 * to wait out the time out period again - the asumption
-		 * is that we will time out again.
-		 */
+		* We attempt to determine if someone has died with the
+		* lock. We wait ~20 secs after the fifo length
+		* stops moving and assume the lock holder is not functional
+		* and plow ahead. If the lock is freed within the time out
+		* period we re-get the lock and go ahead normally. We also
+		* remember if we have plowed ahead so that we don't have
+		* to wait out the time out period again - the assumption
+		* is that we will time out again.
+		*/
 
 		for (counter = 0; counter < 150; mdelay(125), counter++) {
 			if (stole_lock)
@@ -913,13 +873,9 @@ sn_sal_console_write(struct console *co, const char *s, unsigned count)
 				break;
 			} else {
 				/* still locked */
-				if ((lhead != port->sc_port.state->xmit.head)
-				    || (ltail !=
-					port->sc_port.state->xmit.tail)) {
-					lhead =
-						port->sc_port.state->xmit.head;
-					ltail =
-						port->sc_port.state->xmit.tail;
+				unsigned int current_len = kfifo_len(&port->sc_port.state->port.xmit_fifo);
+				if (llen != current_len) {
+					llen = current_len;
 					counter = 0;
 				}
 			}
@@ -942,7 +898,6 @@ sn_sal_console_write(struct console *co, const char *s, unsigned count)
 		puts_raw_fixed(port->sc_ops->sal_puts_raw, s, count);
 	}
 }
-
 
 /**
  * sn_sal_console_setup - Set up console for early printing

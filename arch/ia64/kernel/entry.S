@@ -124,7 +124,7 @@ GLOBAL_ENTRY(sys_clone2)
 (p6)	st8 [r2]=in5				// store TLS in r16 for copy_thread()
 	mov out4=in4	// child_tidptr:  valid only w/CLONE_CHILD_SETTID or CLONE_CHILD_CLEARTID
 	mov out0=in0				// out0 = clone_flags
-	br.call.sptk.many rp=do_fork
+	br.call.sptk.many rp=kernel_clone
 .ret1:	.restore sp
 	adds sp=IA64_SWITCH_STACK_SIZE,sp	// pop the switch stack
 	mov ar.pfs=loc1
@@ -155,7 +155,7 @@ GLOBAL_ENTRY(sys_clone)
 (p6)	st8 [r2]=in4				// store TLS in r13 (tp)
 	mov out4=in3	// child_tidptr:  valid only w/CLONE_CHILD_SETTID or CLONE_CHILD_CLEARTID
 	mov out0=in0				// out0 = clone_flags
-	br.call.sptk.many rp=do_fork
+	br.call.sptk.many rp=kernel_clone
 .ret2:	.restore sp
 	adds sp=IA64_SWITCH_STACK_SIZE,sp	// pop the switch stack
 	mov ar.pfs=loc1

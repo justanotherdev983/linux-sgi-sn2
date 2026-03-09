@@ -12,6 +12,7 @@
 #include <linux/gfp.h>
 #include <linux/module.h>
 #include <linux/dma-mapping.h>
+#include <linux/dma-map-ops.h>
 #include <asm/dma.h>
 #include <asm/sn/intr.h>
 #include <asm/sn/pcibus_provider_defs.h>
@@ -165,7 +166,7 @@ static void sn_dma_free_coherent(struct device *dev, size_t size, void *cpu_addr
  * no way of saving the dmamap handle from the alloc to later free
  * (which is pretty much unacceptable).
  *
- * mappings with the DMA_ATTR_WRITE_BARRIER get mapped with
+ * mappings with the DMA_ATTR_WRITE_COMBINE get mapped with
  * dma_map_consistent() so that writes force a flush of pending DMA.
  * (See "SGI Altix Architecture Considerations for Linux Device Drivers",
  * Document Number: 007-4763-001)
@@ -187,7 +188,7 @@ static dma_addr_t sn_dma_map_page(struct device *dev, struct page *page,
 	BUG_ON(!dev_is_pci(dev));
 
 	phys_addr = __pa(cpu_addr);
-	if (attrs & DMA_ATTR_WRITE_BARRIER)
+	if (attrs & DMA_ATTR_WRITE_COMBINE)
 		dma_addr = provider->dma_map_consistent(pdev, phys_addr,
 							size, SN_DMA_ADDR_PHYS);
 	else
@@ -261,7 +262,7 @@ static void sn_dma_unmap_sg(struct device *dev, struct scatterlist *sgl,
  * @direction: direction of the DMA transaction
  * @attrs: optional dma attributes
  *
- * mappings with the DMA_ATTR_WRITE_BARRIER get mapped with
+ * mappings with the DMA_ATTR_WRITE_COMBINE get mapped with
  * dma_map_consistent() so that writes force a flush of pending DMA.
  * (See "SGI Altix Architecture Considerations for Linux Device Drivers",
  * Document Number: 007-4763-001)
@@ -286,7 +287,7 @@ static int sn_dma_map_sg(struct device *dev, struct scatterlist *sgl,
 	for_each_sg(sgl, sg, nhwentries, i) {
 		dma_addr_t dma_addr;
 		phys_addr = SG_ENT_PHYS_ADDRESS(sg);
-		if (attrs & DMA_ATTR_WRITE_BARRIER)
+		if (attrs & DMA_ATTR_WRITE_COMBINE)
 			dma_addr = provider->dma_map_consistent(pdev,
 								phys_addr,
 								sg->length,
@@ -432,15 +433,17 @@ int sn_pci_legacy_write(struct pci_bus *bus, u16 port, u32 val, u8 size)
 static struct dma_map_ops sn_dma_ops = {
 	.alloc			= sn_dma_alloc_coherent,
 	.free			= sn_dma_free_coherent,
-	.map_page		= sn_dma_map_page,
-	.unmap_page		= sn_dma_unmap_page,
 	.map_sg			= sn_dma_map_sg,
 	.unmap_sg		= sn_dma_unmap_sg,
 	.dma_supported		= sn_dma_supported,
 	.get_required_mask	= sn_dma_get_required_mask,
 };
 
+const struct dma_map_ops *sn_dma_get_ops(struct device *dev)
+{
+	return &sn_dma_ops;
+}
+
 void sn_dma_init(void)
 {
-	dma_ops = &sn_dma_ops;
 }

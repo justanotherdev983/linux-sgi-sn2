@@ -26,6 +26,13 @@ static inline long syscall_get_nr(struct task_struct *task,
 	return regs->r15;
 }
 
+static inline void syscall_set_nr(struct task_struct *task,
+				  struct pt_regs *regs,
+				  int nr)
+{
+	regs->r15 = nr;
+}
+
 static inline void syscall_rollback(struct task_struct *task,
 				    struct pt_regs *regs)
 {
@@ -63,25 +70,19 @@ extern void ia64_syscall_get_set_arguments(struct task_struct *task,
 	unsigned long *args, int rw);
 static inline void syscall_get_arguments(struct task_struct *task,
 					 struct pt_regs *regs,
-					 unsigned int i, unsigned int n,
 					 unsigned long *args)
 {
-	BUG_ON(i + n > 6);
-
-	ia64_syscall_get_set_arguments(task, regs, i, n, args, 0);
+	ia64_syscall_get_set_arguments(task, regs, 0, 6, args, 0);
 }
 
 static inline void syscall_set_arguments(struct task_struct *task,
 					 struct pt_regs *regs,
-					 unsigned int i, unsigned int n,
 					 unsigned long *args)
 {
-	BUG_ON(i + n > 6);
-
-	ia64_syscall_get_set_arguments(task, regs, i, n, args, 1);
+	ia64_syscall_get_set_arguments(task, regs, 0, 6, args, 1);
 }
 
-static inline int syscall_get_arch(void)
+static inline int syscall_get_arch(struct task_struct *child)
 {
 	return AUDIT_ARCH_IA64;
 }

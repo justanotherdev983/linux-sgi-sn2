@@ -1921,7 +1921,7 @@ extern unsigned long init_stack[THREAD_SIZE / sizeof(unsigned long)];
 
 #ifdef CONFIG_THREAD_INFO_IN_TASK
 # define task_thread_info(task)	(&(task)->thread_info)
-#else
+#elif !defined(task_thread_info)
 # define task_thread_info(task)	((struct thread_info *)(task)->stack)
 #endif
 

@@ -10,6 +10,7 @@
 #include <linux/errno.h>
 #include <linux/types.h>
 #include <linux/crash_dump.h>
+#include <linux/uio.h>
 
 #include <asm/page.h>
 #include <linux/uaccess.h>
@@ -32,20 +33,12 @@
  * space in non-atomic context.
  */
 ssize_t
-copy_oldmem_page(unsigned long pfn, char *buf,
-		size_t csize, unsigned long offset, int userbuf)
+copy_oldmem_page(struct iov_iter *iter, unsigned long pfn, size_t csize,
+		unsigned long offset)
 {
-	void  *vaddr;
-
+	void *vaddr;
 	if (!csize)
 		return 0;
-	vaddr = __va(pfn<<PAGE_SHIFT);
-	if (userbuf) {
-		if (copy_to_user(buf, (vaddr + offset), csize)) {
-			return -EFAULT;
-		}
-	} else
-		memcpy(buf, (vaddr + offset), csize);
-	return csize;
+	vaddr = __va(pfn << PAGE_SHIFT);
+	return copy_to_iter(vaddr + offset, csize, iter);
 }
-

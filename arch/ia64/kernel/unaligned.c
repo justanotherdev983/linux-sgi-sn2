@@ -1335,13 +1335,9 @@ ia64_handle_unaligned (unsigned long ifa, struct pt_regs *regs)
 				      task_pid_nr(current),
 				      ifa, regs->cr_iip + ipsr->ri);
 			/*
-			 * Don't call tty_write_message() if we're in the kernel; we might
 			 * be holding locks...
 			 */
 			if (user_mode(regs)) {
-				struct tty_struct *tty = get_current_tty();
-				tty_write_message(tty, buf);
-				tty_kref_put(tty);
 			}
 			buf[len-1] = '\0';	/* drop '\r' */
 			/* watch for command names containing %s */
@@ -1536,7 +1532,6 @@ ia64_handle_unaligned (unsigned long ifa, struct pt_regs *regs)
 		/* NOT_REACHED */
 	}
   force_sigbus:
-	force_sig_fault(SIGBUS, BUS_ADRALN, (void __user *) ifa,
-			0, 0, 0, current);
+	force_sig_fault(SIGBUS, BUS_ADRALN, (void __user *) ifa);
 	goto done;
 }

@@ -57,7 +57,7 @@ static inline unsigned long *end_of_stack(const struct task_struct *p)
 {
 #ifdef CONFIG_STACK_GROWSUP
 	return (unsigned long *)((unsigned long)task_thread_info(p) + THREAD_SIZE) - 1;
-#else
+#else 
 	return (unsigned long *)(task_thread_info(p) + 1);
 #endif
 }

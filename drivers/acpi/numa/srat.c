@@ -7,6 +7,8 @@
 
 #define pr_fmt(fmt) "ACPI: " fmt
 
+#include <linux/numa.h>
+#include <linux/numa_memblks.h>
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
@@ -15,11 +17,17 @@
 #include <linux/acpi.h>
 #include <linux/memblock.h>
 #include <linux/memory.h>
-#include <linux/numa.h>
 #include <linux/nodemask.h>
 #include <linux/topology.h>
-#include <linux/numa_memblks.h>
 #include <linux/string_choices.h>
+
+//XXX: Hacky fix
+#ifdef CONFIG_IA64
+extern nodemask_t numa_nodes_parsed;
+extern int numa_add_reserved_memblk(int node, u64 start, u64 end);
+extern int numa_add_memblk(int node, u64 start, u64 end);
+extern void numa_set_distance(int from, int to, int distance);
+#endif
 
 static nodemask_t nodes_found_map = NODE_MASK_NONE;
 

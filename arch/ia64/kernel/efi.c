@@ -22,6 +22,9 @@
  * Goutham Rao: <goutham.rao@intel.com>
  *	Skip non-WB memory and ignore empty memory ranges.
  */
+
+#include <linux/compiler.h>
+#include <linux/io.h>
 #include <linux/module.h>
 #include <linux/memblock.h>
 #include <linux/crash_dump.h>
@@ -33,7 +36,12 @@
 #include <linux/efi.h>
 #include <linux/kexec.h>
 #include <linux/mm.h>
+#include <linux/percpu-rwsem.h>
+#include <linux/rwsem.h>
+#include <linux/rcuwait.h>
+#include <linux/sched/signal.h>
 
+#include <asm/efi.h>
 #include <asm/io.h>
 #include <asm/kregs.h>
 #include <asm/meminit.h>
@@ -45,11 +53,24 @@
 
 #define EFI_DEBUG	0
 
+unsigned long ia64_sal_systab_phys;
+
+static efi_system_table_t *efi_systab_ia64;
+
 static __initdata unsigned long palo_phys;
 
 static __initdata efi_config_table_type_t arch_tables[] = {
-	{PROCESSOR_ABSTRACTION_LAYER_OVERWRITE_GUID, "PALO", &palo_phys},
-	{NULL_GUID, NULL, 0},
+	{
+		.guid = PROCESSOR_ABSTRACTION_LAYER_OVERWRITE_GUID,
+		.ptr = &palo_phys,
+		.name = "PALO"
+	},
+	{
+		.guid = SAL_SYSTEM_TABLE_GUID,
+		.ptr = &ia64_sal_systab_phys,
+		.name = "SALsystab"
+	},
+	{ .guid = NULL_GUID },
 };
 
 extern efi_status_t efi_call_phys (void *, ...);
@@ -505,23 +526,23 @@ efi_init (void)
 		printk(KERN_INFO "Ignoring memory above %lluMB\n",
 		       max_addr >> 20);
 
-	efi.systab = __va(ia64_boot_param->efi_systab);
+	efi_systab_ia64= __va(ia64_boot_param->efi_systab);
 
 	/*
 	 * Verify the EFI Table
 	 */
-	if (efi.systab == NULL)
+	if (efi_systab_ia64 == NULL)
 		panic("Whoa! Can't find EFI system table.\n");
-	if (efi.systab->hdr.signature != EFI_SYSTEM_TABLE_SIGNATURE)
+	if (efi_systab_ia64->hdr.signature != EFI_SYSTEM_TABLE_SIGNATURE)
 		panic("Whoa! EFI system table signature incorrect\n");
-	if ((efi.systab->hdr.revision >> 16) == 0)
+	if ((efi_systab_ia64->hdr.revision >> 16) == 0)
 		printk(KERN_WARNING "Warning: EFI system table version "
 		       "%d.%02d, expected 1.00 or greater\n",
-		       efi.systab->hdr.revision >> 16,
-		       efi.systab->hdr.revision & 0xffff);
+		       efi_systab_ia64->hdr.revision >> 16,
+		       efi_systab_ia64->hdr.revision & 0xffff);
 
 	/* Show what we know for posterity */
-	c16 = __va(efi.systab->fw_vendor);
+	c16 = __va(efi_systab_ia64->fw_vendor);
 	if (c16) {
 		for (i = 0;i < (int) sizeof(vendor) - 1 && *c16; ++i)
 			vendor[i] = *c16++;
@@ -529,18 +550,23 @@ efi_init (void)
 	}
 
 	printk(KERN_INFO "EFI v%u.%.02u by %s:",
-	       efi.systab->hdr.revision >> 16,
-	       efi.systab->hdr.revision & 0xffff, vendor);
+	       efi_systab_ia64->hdr.revision >> 16,
+	       efi_systab_ia64->hdr.revision & 0xffff, vendor);
 
 	palo_phys      = EFI_INVALID_TABLE_ADDR;
 
-	if (efi_config_init(arch_tables) != 0)
-		return;
+	arch_tables[0].ptr = (void *)&palo_phys;
+	arch_tables[1].ptr = (void *)&ia64_sal_systab_phys;
+
+	if ((efi_config_parse_tables(__va(efi_systab_ia64->tables),
+                        efi_systab_ia64->nr_tables,
+                        arch_tables)) != 0)
+				return;
 
 	if (palo_phys != EFI_INVALID_TABLE_ADDR)
 		handle_palo(palo_phys);
 
-	runtime = __va(efi.systab->runtime);
+	runtime = __va(efi_systab_ia64->runtime);
 	efi.get_time = phys_get_time;
 	efi.set_time = phys_set_time;
 	efi.get_wakeup_time = phys_get_wakeup_time;

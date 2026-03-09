@@ -34,6 +34,7 @@
 #include <linux/nodemask.h>
 #include <linux/smp.h>
 #include <linux/mutex.h>
+#include <linux/workqueue.h>
 
 #include <asm/processor.h>
 #include <asm/topology.h>
@@ -636,7 +637,7 @@ static int sn_hwperf_op_cpu(struct sn_hwperf_op_info *op_info)
 				op_info, 1);
 		} else {
 			/* Call on the target CPU */
-			work_on_cpu_safe(cpu, sn_hwperf_call_sal_work, op_info);
+			work_on_cpu(cpu, sn_hwperf_call_sal_work, op_info);
 		}
 	}
 	r = op_info->ret;

@@ -326,7 +326,7 @@ static void
 xpc_check_for_dropped_notify_IRQ_sn2(struct timer_list *t)
 {
 	struct xpc_partition *part =
-		from_timer(part, t, sn.sn2.dropped_notify_IRQ_timer);
+		timer_container_of(part, t, sn.sn2.dropped_notify_IRQ_timer);
 
 	if (xpc_part_ref(part)) {
 		xpc_check_for_sent_chctl_flags_sn2(part);
@@ -1296,7 +1296,7 @@ xpc_teardown_ch_structures_sn2(struct xpc_partition *part)
 	xpc_vars_part_sn2[partid].magic = 0;
 
 	/* in case we've still got outstanding timers registered... */
-	del_timer_sync(&part_sn2->dropped_notify_IRQ_timer);
+	timer_delete_sync(&part_sn2->dropped_notify_IRQ_timer);
 	free_irq(SGI_XPC_NOTIFY, (void *)(u64)partid);
 
 	kfree(part_sn2->local_openclose_args_base);
@@ -2053,7 +2053,7 @@ xpc_send_msgs_sn2(struct xpc_channel *ch, s64 initial_put)
 			break;
 		}
 
-		if (cmpxchg_rel(&ch_sn2->local_GP->put, initial_put, put) !=
+		if (cmpxchg_release(&ch_sn2->local_GP->put, initial_put, put) !=
 		    initial_put) {
 			/* someone else beat us to it */
 			DBUG_ON(ch_sn2->local_GP->put < initial_put);
@@ -2287,7 +2287,7 @@ xpc_acknowledge_msgs_sn2(struct xpc_channel *ch, s64 initial_get, u8 msg_flags)
 			break;
 		}
 
-		if (cmpxchg_rel(&ch_sn2->local_GP->get, initial_get, get) !=
+		if (cmpxchg_release(&ch_sn2->local_GP->get, initial_get, get) !=
 		    initial_get) {
 			/* someone else beat us to it */
 			DBUG_ON(ch_sn2->local_GP->get <= initial_get);

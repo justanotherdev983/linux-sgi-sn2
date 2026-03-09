@@ -381,7 +381,7 @@ void destroy_and_reserve_irq(unsigned int irq)
 {
 	unsigned long flags;
 
-	irq_init_desc(irq);
+	irq_alloc_desc_at(irq, 0);
 	spin_lock_irqsave(&vector_lock, flags);
 	__clear_irq_vector(irq);
 	irq_status[irq] = IRQ_RSVD;
@@ -414,13 +414,13 @@ int create_irq(void)
  out:
 	spin_unlock_irqrestore(&vector_lock, flags);
 	if (irq >= 0)
-		irq_init_desc(irq);
+		irq_alloc_desc_at(irq, 0);
 	return irq;
 }
 
 void destroy_irq(unsigned int irq)
 {
-	irq_init_desc(irq);
+	irq_alloc_desc_at(irq, 0);
 	clear_irq_vector(irq);
 }
 
@@ -616,8 +616,6 @@ ia64_native_register_percpu_irq (ia64_vector vec, struct irqaction *action)
 	BUG_ON(bind_irq_vector(irq, vec, CPU_MASK_ALL));
 	irq_set_status_flags(irq, IRQ_PER_CPU);
 	irq_set_chip(irq, &irq_type_ia64_lsapic);
-	if (action)
-		setup_irq(irq, action);
 	irq_set_handler(irq, handle_percpu_irq);
 }
 

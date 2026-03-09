@@ -548,12 +548,12 @@ static int sn2_ptc_proc_open(struct inode *inode, struct file *file)
 	return seq_open(file, &sn2_ptc_seq_ops);
 }
 
-static const struct file_operations proc_sn2_ptc_operations = {
-	.open = sn2_ptc_proc_open,
-	.read = seq_read,
-	.write = sn2_ptc_proc_write,
-	.llseek = seq_lseek,
-	.release = seq_release,
+static const struct proc_ops proc_sn2_ptc_operations = {
+	.proc_open    = sn2_ptc_proc_open,
+	.proc_read    = seq_read,
+	.proc_write   = sn2_ptc_proc_write,
+	.proc_lseek   = seq_lseek,
+	.proc_release = seq_release,
 };
 
 static struct proc_dir_entry *proc_sn2_ptc;

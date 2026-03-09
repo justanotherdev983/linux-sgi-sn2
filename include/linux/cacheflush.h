@@ -24,6 +24,8 @@ static inline void flush_icache_pages(struct vm_area_struct *vma,
 }
 #endif
 
+#ifndef flush_icache_page
 #define flush_icache_page(vma, page)	flush_icache_pages(vma, page, 1)
+#endif
 
 #endif /* _LINUX_CACHEFLUSH_H */

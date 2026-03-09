@@ -42,7 +42,7 @@
 #include <linux/capability.h>
 #include <linux/rcupdate.h>
 #include <linux/completion.h>
-#include <linux/tracehook.h>
+#include <linux/resume_user_mode.h>
 #include <linux/slab.h>
 #include <linux/cpu.h>
 

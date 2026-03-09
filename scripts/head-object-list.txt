@@ -39,3 +39,4 @@ arch/sh/kernel/head_32.o
 arch/sparc/kernel/head_32.o
 arch/sparc/kernel/head_64.o
 arch/xtensa/kernel/head.o
+arch/ia64/kernel/head.o

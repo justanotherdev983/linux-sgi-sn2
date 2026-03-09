@@ -56,6 +56,7 @@ extern ia64_mv_readw_t __sn_readw_relaxed;
 extern ia64_mv_readl_t __sn_readl_relaxed;
 extern ia64_mv_readq_t __sn_readq_relaxed;
 extern ia64_mv_dma_init			sn_dma_init;
+extern ia64_mv_dma_get_ops 		sn_dma_get_ops;
 extern ia64_mv_migrate_t		sn_migrate;
 extern ia64_mv_kernel_launch_event_t	sn_kernel_launch_event;
 extern ia64_mv_setup_msi_irq_t		sn_setup_msi_irq;
@@ -71,6 +72,7 @@ extern ia64_mv_pci_fixup_bus_t		sn_pci_fixup_bus;
  * the macros are used directly.
  */
 #define ia64_platform_name		"sn2"
+#define platform_dma_get_ops    	sn_dma_get_ops
 #define platform_setup			sn_setup
 #define platform_cpu_init		sn_cpu_init
 #define platform_irq_init		sn_irq_init
