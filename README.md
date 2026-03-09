@@ -33,21 +33,20 @@ time make ARCH=ia64 CROSS_COMPILE=ia64-linux-gnu- -j$(nproc)
 
 ## Status
 
-Work in progress — header compatibility fixes for modern kernel APIs are ongoing.
+Work in progress.
+
+Currently it builds and we get a vmlinux image!
 
 **Completed:**
 - Restoration of 437 files: `arch/ia64/`, `arch/ia64/sn/`, `drivers/sn/`, `drivers/char/` (snsc, mspec, mbcs), `drivers/misc/ioc4`, `drivers/misc/sgi-xp/`, `drivers/tty/serial/` (sn_console, ioc4, ioc3), `drivers/pci/hotplug/sgi_hotplug`, `drivers/char/agp/sgi-agp`
 - Kconfig/Makefile wiring for all restored drivers
 - `drivers/firmware/qcom/Kconfig` fix (pre-existing 6.19.6 bug affecting ia64 builds)
-- defconfig generates successfully
+- It compiles successfully
 
-**In progress:**
-- Header compatibility fixes: atomics, bitops, pgtable, uaccess, thread_info
-- `task_thread_info` override for ia64's unique task/thread_info/RBS contiguous allocation layout
 
 **Known issues:**
-- `drivers/ide/sgiioc4.c` restored but not wired in — IDE subsystem removed in 6.x
-- `task_thread_info` conflict with `include/linux/sched.h` pending resolution
+- There are some changes that touch core files
+- We get a few build warnings, nothing too bad
 
 **Patches:**
 - All current saved listed patches are in custom-linux-sgi-sn2-patch-series/
