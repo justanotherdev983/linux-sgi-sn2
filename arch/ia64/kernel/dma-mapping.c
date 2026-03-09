@@ -36,6 +36,6 @@ long arch_dma_coherent_to_pfn(struct device *dev, void *cpu_addr,
 
 void __init swiotlb_dma_init(void)
 {
-	swiotlb_init(1);
+	swiotlb_init(true, 0);
 }
 #endif
