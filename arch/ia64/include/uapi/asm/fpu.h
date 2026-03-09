@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
-#ifndef _ASM_IA64_FPU_H
-#define _ASM_IA64_FPU_H
+#ifndef _UAPI_ASM_IA64_FPU_H
+#define _UAPI_ASM_IA64_FPU_H
 
 /*
  * Copyright (C) 1998, 1999, 2002, 2003 Hewlett-Packard Co
@@ -64,4 +64,4 @@ struct ia64_fpreg {
 
 # endif /* __ASSEMBLY__ */
 
-#endif /* _ASM_IA64_FPU_H */
+#endif /* _UAPI_ASM_IA64_FPU_H */
