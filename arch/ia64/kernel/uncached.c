@@ -19,6 +19,8 @@
 #include <linux/errno.h>
 #include <linux/string.h>
 #include <linux/efi.h>
+#include <asm/cacheflush.h>
+#include <asm/efi.h>
 #include <linux/nmi.h>
 #include <linux/genalloc.h>
 #include <linux/gfp.h>
@@ -30,7 +32,6 @@
 #include <asm/sn/arch.h>
 
 
-extern void __init efi_memmap_walk_uc(efi_freemem_callback_t, void *);
 
 struct uncached_pool {
 	struct gen_pool *pool;
@@ -116,15 +117,13 @@ static int uncached_add_chunk(struct uncached_pool *uc_pool, int nid)
 	 * access the page through /dev/mem halfway through the conversion
 	 * to uncached - not sure it's really worth bothering about
 	 */
-	for (i = 0; i < (IA64_GRANULE_SIZE / PAGE_SIZE); i++)
-		SetPageUncached(&page[i]);
 
 	flush_tlb_kernel_range(uc_addr, uc_addr + IA64_GRANULE_SIZE);
 
 	status = ia64_pal_prefetch_visibility(PAL_VISIBILITY_PHYSICAL);
 	if (status == PAL_VISIBILITY_OK_REMOTE_NEEDED) {
 		atomic_set(&uc_pool->status, 0);
-		status = smp_call_function(uncached_ipi_visibility, uc_pool, 1);
+		smp_call_function(uncached_ipi_visibility, uc_pool, 1); status = 0;
 		if (status || atomic_read(&uc_pool->status))
 			goto failed;
 	} else if (status != PAL_VISIBILITY_OK)
@@ -146,7 +145,7 @@ static int uncached_add_chunk(struct uncached_pool *uc_pool, int nid)
 	if (status != PAL_STATUS_SUCCESS)
 		goto failed;
 	atomic_set(&uc_pool->status, 0);
-	status = smp_call_function(uncached_ipi_mc_drain, uc_pool, 1);
+	smp_call_function(uncached_ipi_mc_drain, uc_pool, 1); status = 0;
 	if (status || atomic_read(&uc_pool->status))
 		goto failed;
 
@@ -165,7 +164,7 @@ static int uncached_add_chunk(struct uncached_pool *uc_pool, int nid)
 	/* failed to convert or add the chunk so give it back to the kernel */
 failed:
 	for (i = 0; i < (IA64_GRANULE_SIZE / PAGE_SIZE); i++)
-		ClearPageUncached(&page[i]);
+		
 
 	free_pages(c_addr, IA64_GRANULE_SHIFT-PAGE_SHIFT);
 	mutex_unlock(&uc_pool->add_chunk_mutex);

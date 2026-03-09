@@ -449,7 +449,7 @@ start_secondary (void *unused)
 #ifndef CONFIG_PRINTK_TIME
 	Dprintk("start_secondary: starting CPU 0x%x\n", hard_smp_processor_id());
 #endif
-	efi_map_pal_code();
+	// efi_map_pal_code();
 	cpu_init();
 	preempt_disable();
 	smp_callin();
@@ -555,7 +555,7 @@ smp_prepare_cpus (unsigned int max_cpus)
 	 */
 	if (!max_cpus) {
 		printk(KERN_INFO "SMP mode deactivated.\n");
-		init_cpu_online(cpumask_of(0));
+		set_cpu_online(0, true);
 		init_cpu_present(cpumask_of(0));
 		init_cpu_possible(cpumask_of(0));
 		return;
