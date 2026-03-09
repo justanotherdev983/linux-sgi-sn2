@@ -43,7 +43,7 @@ crash_save_this_cpu(void)
 
 	elf_greg_t *dst = (elf_greg_t *)&(prstatus->pr_reg);
 	memset(prstatus, 0, sizeof(*prstatus));
-	prstatus->pr_pid = current->pid;
+	prstatus->common.pr_pid = current->pid;
 
 	ia64_dump_cpu_regs(dst);
 	cfm = dst[43];
@@ -55,7 +55,7 @@ crash_save_this_cpu(void)
 	buf = (u64 *) per_cpu_ptr(crash_notes, cpu);
 	if (!buf)
 		return;
-	buf = append_elf_note(buf, KEXEC_CORE_NOTE_NAME, NT_PRSTATUS, prstatus,
+	buf = append_elf_note(buf, "CORE", NT_PRSTATUS, prstatus,
 			sizeof(*prstatus));
 	final_note(buf);
 }
@@ -234,14 +234,14 @@ static struct ctl_table kdump_ctl_table[] = {
 	{ }
 };
 
-static struct ctl_table sys_table[] = {
-	{
-	  .procname = "kernel",
-	  .mode = 0555,
-	  .child = kdump_ctl_table,
-	},
-	{ }
-};
+//static struct ctl_table sys_table[] = {
+//	{
+//	  .procname = "kernel",
+//	  .mode = 0555,
+//	  .child = kdump_ctl_table,
+//	},
+//	{ }
+//};
 #endif
 
 static int
@@ -256,7 +256,7 @@ machine_crash_setup(void)
 	if((ret = register_die_notifier(&kdump_init_notifier_nb)) != 0)
 		return ret;
 #ifdef CONFIG_SYSCTL
-	register_sysctl_table(sys_table);
+	// register_sysctl_table(sys_table);
 #endif
 	return 0;
 }
