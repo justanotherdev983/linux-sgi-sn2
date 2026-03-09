@@ -589,8 +589,4 @@ static inline pte_t pte_swp_clear_exclusive(pte_t pte) { return pte; }
 #include <asm-generic/pgtable-nopud.h>
 #endif
 
-static inline int pte_swp_exclusive(pte_t pte) { return 0; }
-static inline pte_t pte_swp_mkexclusive(pte_t pte) { return pte; }
-static inline pte_t pte_swp_clear_exclusive(pte_t pte) { return pte; }
-
 #endif /* _ASM_IA64_PGTABLE_H */
