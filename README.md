@@ -4,7 +4,7 @@ Restoration of the SGI SN2 (Altix) ia64 platform and drivers to Linux stable v6.
 
 The original code was removed in kernel 5.4 via
 [76f0f227cffb](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=76f0f227cffb570bc5ce343b1750f14907371d80).
-This project restores it for continued use on SGI Altix hardware. Not intended for upstream submission — this is a maintained out-of-tree port.
+This project restores it for continued use on SGI Altix hardware.
 
 ## Base
 
