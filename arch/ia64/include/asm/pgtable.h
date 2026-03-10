@@ -13,12 +13,6 @@
  *	David Mosberger-Tang <davidm@hpl.hp.com>
  */
 
-<<<<<<< ours
-<<<<<<< ours
-
-=======
->>>>>>> theirs
-=======
 /*
 // XXX: Hacky; maybe circ dep? BOU fixme
 //struct percpu_rw_semaphore;
@@ -27,7 +21,6 @@
 #include <linux/percpu-rwsem.h>
 */
 
->>>>>>> theirs
 #include <asm/mman.h>
 #include <asm/page.h>
 #include <asm/processor.h>
@@ -93,11 +86,8 @@
 #define __DIRTY_BITS_NO_ED	_PAGE_A | _PAGE_P | _PAGE_D | _PAGE_MA_WB
 #define __DIRTY_BITS		_PAGE_ED | __DIRTY_BITS_NO_ED
 
-<<<<<<< ours
-=======
 #define PFN_PTE_SHIFT PAGE_SHIFT
 
->>>>>>> theirs
 /*
  * How many pointers will a page table level hold expressed in shift
  */
@@ -262,25 +252,16 @@ extern unsigned long VMALLOC_END;
  * Conversion functions: convert page frame number (pfn) and a protection value to a page
  * table entry (pte).
  */
-<<<<<<< ours
-#define pfn_pte(pfn, pgprot) \
-({ pte_t __pte; pte_val(__pte) = ((pfn) << PAGE_SHIFT) | pgprot_val(pgprot); __pte; })
-=======
 static inline pte_t pfn_pte(unsigned long pfn, pgprot_t pgprot)
 {
 	pte_t pte;
 	pte_val(pte) = (pfn << PAGE_SHIFT) | pgprot_val(pgprot);
 	return pte;
 }
->>>>>>> theirs
 
 /* Extract pfn from pte.  */
 #define pte_pfn(_pte)		((pte_val(_pte) & _PFN_MASK) >> PAGE_SHIFT)
 
-<<<<<<< ours
-#define mk_pte(page, pgprot)	pfn_pte(page_to_pfn(page), (pgprot))
-=======
->>>>>>> theirs
 
 /* This takes a physical page address that is used by the remapping functions */
 #define mk_pte_phys(physpage, pgprot) \
@@ -325,30 +306,18 @@ static inline pte_t pfn_pte(unsigned long pfn, pgprot_t pgprot)
 #define pte_exec(pte)		((pte_val(pte) & _PAGE_AR_RX) != 0)
 #define pte_dirty(pte)		((pte_val(pte) & _PAGE_D) != 0)
 #define pte_young(pte)		((pte_val(pte) & _PAGE_A) != 0)
-<<<<<<< ours
-#define pte_special(pte)	0
-=======
->>>>>>> theirs
 
 /*
  * Note: we convert AR_RWX to AR_RX and AR_RW to AR_R by clearing the 2nd bit in the
  * access rights:
  */
 #define pte_wrprotect(pte)	(__pte(pte_val(pte) & ~_PAGE_AR_RW))
-<<<<<<< ours
-#define pte_mkwrite(pte)	(__pte(pte_val(pte) | _PAGE_AR_RW))
-=======
 #define pte_mkwrite(pte, vma)	(__pte(pte_val(pte) | _PAGE_AR_RW))
->>>>>>> theirs
 #define pte_mkold(pte)		(__pte(pte_val(pte) & ~_PAGE_A))
 #define pte_mkyoung(pte)	(__pte(pte_val(pte) | _PAGE_A))
 #define pte_mkclean(pte)	(__pte(pte_val(pte) & ~_PAGE_D))
 #define pte_mkdirty(pte)	(__pte(pte_val(pte) | _PAGE_D))
 #define pte_mkhuge(pte)		(__pte(pte_val(pte)))
-<<<<<<< ours
-#define pte_mkspecial(pte)	(pte)
-=======
->>>>>>> theirs
 
 /*
  * Because ia64's Icache and Dcache is not coherent (on a cpu), we need to
@@ -378,10 +347,6 @@ static inline void set_pte(pte_t *ptep, pte_t pteval)
 	*ptep = pteval;
 }
 
-<<<<<<< ours
-#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
-=======
->>>>>>> theirs
 
 /*
  * Make page protection values cacheable, uncacheable, or write-
@@ -417,12 +382,6 @@ pgd_offset (const struct mm_struct *mm, unsigned long address)
 
 /* In the kernel's mapped region we completely ignore the region number
    (since we know it's in region number 5). */
-<<<<<<< ours
-#define pgd_offset_k(addr) \
-	(init_mm.pgd + (((addr) >> PGDIR_SHIFT) & (PTRS_PER_PGD - 1)))
-
-=======
->>>>>>> theirs
 /* Look up a pgd entry in the gate area.  On IA-64, the gate-area
    resides in the kernel-mapped segment, hence we use pgd_offset_k()
    here.  */
@@ -442,14 +401,7 @@ pgd_offset (const struct mm_struct *mm, unsigned long address)
  * Find an entry in the third-level page table.  This looks more complicated than it
  * should be because some platforms place page tables in high memory.
  */
-<<<<<<< ours
-#define pte_index(addr)	 	(((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
 #define pte_offset_kernel(dir,addr)	((pte_t *) pmd_page_vaddr(*(dir)) + pte_index(addr))
-#define pte_offset_map(dir,addr)	pte_offset_kernel(dir, addr)
-#define pte_unmap(pte)			do { } while (0)
-=======
-#define pte_offset_kernel(dir,addr)	((pte_t *) pmd_page_vaddr(*(dir)) + pte_index(addr))
->>>>>>> theirs
 
 /* atomic versions of the some PTE manipulations: */
 
@@ -616,10 +568,6 @@ static inline pte_t pte_swp_clear_exclusive(pte_t pte) { return pte; }
 /*
  * No page table caches to initialise
  */
-<<<<<<< ours
-#define pgtable_cache_init()	do { } while (0)
-=======
->>>>>>> theirs
 
 /* These tell get_user_pages() that the first gate page is accessible from user-level.  */
 #define FIXADDR_USER_START	GATE_ADDR
@@ -640,10 +588,5 @@ static inline pte_t pte_swp_clear_exclusive(pte_t pte) { return pte; }
 #define __ARCH_USE_5LEVEL_HACK
 #include <asm-generic/pgtable-nopud.h>
 #endif
-<<<<<<< ours
-#include <asm-generic/5level-fixup.h>
-#include <asm-generic/pgtable.h>
-=======
->>>>>>> theirs
 
 #endif /* _ASM_IA64_PGTABLE_H */

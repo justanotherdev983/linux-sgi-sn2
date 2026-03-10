@@ -1,16 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 #ifndef _ASM_IA64_UNALIGNED_H
 #define _ASM_IA64_UNALIGNED_H
-<<<<<<< ours
-
-#include <linux/unaligned/le_struct.h>
-#include <linux/unaligned/be_byteshift.h>
-#include <linux/unaligned/generic.h>
-
-#define get_unaligned	__get_unaligned_le
-#define put_unaligned	__put_unaligned_le
-
-=======
 #include <linux/unaligned.h>
->>>>>>> theirs
 #endif /* _ASM_IA64_UNALIGNED_H */

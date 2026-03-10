@@ -13,8 +13,6 @@
 
 #include <linux/numa.h>
 
-<<<<<<< ours
-=======
 #undef NODE_DATA
 /*
  * Given a node id, return a pointer to the pg_data_t for the node.
@@ -29,7 +27,6 @@
 
 
 
->>>>>>> theirs
 #include <asm/percpu.h>
 #include <asm/mmzone.h>
 
@@ -53,20 +50,6 @@ struct ia64_node_data {
 #define local_node_data		(local_cpu_data->node_data)
 
 /*
-<<<<<<< ours
- * Given a node id, return a pointer to the pg_data_t for the node.
- *
- * NODE_DATA 	- should be used in all code not related to system
- *		  initialization. It uses pernode data structures to minimize
- *		  offnode memory references. However, these structure are not 
- *		  present during boot. This macro can be used once cpu_init
- *		  completes.
- */
-#define NODE_DATA(nid)		(local_node_data->pg_data_ptrs[nid])
-
-/*
-=======
->>>>>>> theirs
  * LOCAL_DATA_ADDR - This is to calculate the address of other node's
  *		     "local_node_data" at hot-plug phase. The local_node_data
  *		     is pointed by per_cpu_page. Kernel usually use it for
