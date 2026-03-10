@@ -5,10 +5,7 @@
  * to extract and format the required data.
  */
 
-<<<<<<< ours
-=======
 #define COMPILE_OFFSETS
->>>>>>> theirs
 #define ASM_OFFSETS_C 1
 
 #include <linux/sched/signal.h>
@@ -215,11 +212,7 @@ void foo(void)
 	       offsetof (struct cpuinfo_ia64, ptce_stride));
 	BLANK();
 	DEFINE(IA64_TIMESPEC_TV_NSEC_OFFSET,
-<<<<<<< ours
-	       offsetof (struct timespec, tv_nsec));
-=======
 	       offsetof (struct timespec64, tv_nsec));
->>>>>>> theirs
 	DEFINE(IA64_TIME_SN_SPEC_SNSEC_OFFSET,
 	       offsetof (struct time_sn_spec, snsec));
 

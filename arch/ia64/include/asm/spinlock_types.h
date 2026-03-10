@@ -2,11 +2,7 @@
 #ifndef _ASM_IA64_SPINLOCK_TYPES_H
 #define _ASM_IA64_SPINLOCK_TYPES_H
 
-<<<<<<< ours
-#ifndef __LINUX_SPINLOCK_TYPES_H
-=======
 #if !defined(__LINUX_SPINLOCK_TYPES_H) && !defined(__LINUX_SPINLOCK_TYPES_RAW_H)
->>>>>>> theirs
 # error "please don't include this file directly"
 #endif
 

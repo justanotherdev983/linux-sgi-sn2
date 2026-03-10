@@ -555,11 +555,7 @@ ia64_get_irr(unsigned int vector)
 	case 3: irr = ia64_getreg(_IA64_REG_CR_IRR3); break;
 	}
 
-<<<<<<< ours
-	return test_bit(bit, &irr);
-=======
 	return test_bit(bit, (unsigned long *)&irr);
->>>>>>> theirs
 }
 
 static inline void

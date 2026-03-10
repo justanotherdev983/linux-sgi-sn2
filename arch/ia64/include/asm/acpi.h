@@ -28,11 +28,6 @@
 
 #ifdef __KERNEL__
 
-<<<<<<< ours
-#include <acpi/pdc_intel.h>
-
-=======
->>>>>>> theirs
 #include <linux/init.h>
 #include <linux/numa.h>
 #include <asm/numa.h>
@@ -110,11 +105,8 @@ extern int __initdata nid_to_pxm_map[MAX_NUMNODES];
 #endif
 
 static inline bool arch_has_acpi_pdc(void) { return true; }
-<<<<<<< ours
-=======
 
 #define ACPI_PDC_EST_CAPABILITY_SMP 0xA
->>>>>>> theirs
 static inline void arch_acpi_set_pdc_bits(u32 *buf)
 {
 	buf[2] |= ACPI_PDC_EST_CAPABILITY_SMP;

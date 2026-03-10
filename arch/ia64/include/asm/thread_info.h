@@ -58,14 +58,6 @@ struct thread_info {
 #define task_thread_info(tsk)	((struct thread_info *) ((char *) (tsk) + IA64_TASK_SIZE))
 #else
 #define current_thread_info()	((struct thread_info *) 0)
-<<<<<<< ours
-#define alloc_thread_stack_node(tsk, node)	((unsigned long *) 0)
-<<<<<<< ours
-#define task_thread_info(tsk)	((struct thread_info *) 0)
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 #endif
 
 // BOU: XXX maybe we should instead check ifdef and the nundef and define our own? hmm
@@ -86,10 +78,7 @@ struct thread_info {
 #define TIF_SYSCALL_TRACE	2	/* syscall trace active */
 #define TIF_SYSCALL_AUDIT	3	/* syscall auditing active */
 #define TIF_SINGLESTEP		4	/* restore singlestep on return to user mode */
-<<<<<<< ours
-=======
 #define TIF_NOTIFY_SIGNAL	5
->>>>>>> theirs
 #define TIF_NOTIFY_RESUME	6	/* resumption notification requested */
 #define TIF_MEMDIE		17	/* is terminating due to OOM killer */
 #define TIF_MCA_INIT		18	/* this task is processing MCA or INIT */
