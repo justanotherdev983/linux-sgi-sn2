@@ -1,3 +1,4 @@
+#include <asm/iosapic.h>
 /*
  *  acpi.c - Architecture-Specific Low-Level ACPI Support
  *
@@ -41,6 +42,7 @@
 #include <linux/types.h>
 #include <linux/irq.h>
 #include <linux/acpi.h>
+#include <asm/iosapic.h>
 #include <linux/efi.h>
 #include <linux/mmzone.h>
 #include <linux/nodemask.h>
