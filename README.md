@@ -31,22 +31,56 @@ make ARCH=ia64 CROSS_COMPILE=ia64-linux-gnu- defconfig
 time make ARCH=ia64 CROSS_COMPILE=ia64-linux-gnu- -j$(nproc)
 ```
 
+## Running on SKI Simulator (Emulator)
+
+ski is an ia64  simulator that can boot the kernel without real hardware.
+
+### Dependencies
+- `ski` or `bski`
+- A disk image with an ia64 rootfs (I use gentoo stage3 ia64 tarball)
+
+### Build for SKI
+```bash
+make ARCH=ia64 sn2_ski_defconfig
+make ARCH=ia64 CROSS_COMPILE=ia64-linux-gnu- -j$(nproc)
+```
+
+### Create disk image
+```bash
+dd if=/dev/zero of=sda bs=1M count=2048
+mkfs.ext2 -F sda
+mkdir mnt
+sudo mount -o loop sda mnt
+sudo tar xpf stage3-ia64-systemd-*.tar.xz -C mnt --numeric-owner
+sudo umount mnt
+```
+
+### Boot
+```bash
+sudo bski -forcesystem -noconsole \
+  arch/ia64/hp/sim/boot/bootloader \
+  vmlinux \
+  "root=/dev/sda simscsi=$(pwd)/sda machvec=hpsim init=/bin/bash PATH=/bin rw"
+```
+
 ## Status
 
 Work in progress.
 
-Currently it builds and we get a vmlinux image!
+Currently it builds and boots(and crashes)!
 
 **Completed:**
 - Restoration of 437 files: `arch/ia64/`, `arch/ia64/sn/`, `drivers/sn/`, `drivers/char/` (snsc, mspec, mbcs), `drivers/misc/ioc4`, `drivers/misc/sgi-xp/`, `drivers/tty/serial/` (sn_console, ioc4, ioc3), `drivers/pci/hotplug/sgi_hotplug`, `drivers/char/agp/sgi-agp`
 - Kconfig/Makefile wiring for all restored drivers
 - `drivers/firmware/qcom/Kconfig` fix (pre-existing 6.19.6 bug affecting ia64 builds)
 - It compiles successfully
+- In ski boots, but hits NULL ptr dereference
 
 
 **Known issues:**
 - There are some changes that touch core files
 - We get a few build warnings, nothing too bad
+- Nullptr dereference crash on boot
 
 **Patches:**
 - All current saved listed patches are in custom-linux-sgi-sn2-patch-series/
