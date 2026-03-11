@@ -6,6 +6,7 @@
  *	David Mosberger-Tang <davidm@hpl.hp.com>
  */
 #include <linux/kernel.h>
+#include <asm/meminit.h>
 #include <linux/init.h>
 
 #include <linux/efi.h>

@@ -9,6 +9,7 @@
  *
  */
 #ifndef _ASM_IA64_NUMA_H
+#include <linux/mmzone.h>
 #define _ASM_IA64_NUMA_H
 
 

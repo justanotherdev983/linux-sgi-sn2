@@ -51,6 +51,9 @@
 #define HAVE_ARCH_STRNLEN_USER
 #define HAVE_ARCH_STRNCPY_FROM_USER
 
+#define HAVE_ARCH_STRNLEN_USER
+#define HAVE_ARCH_STRNCPY_FROM_USER
+
 /*
  * For historical reasons, the following macros are grossly misnamed:
  */
