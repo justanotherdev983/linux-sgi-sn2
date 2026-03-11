@@ -170,7 +170,7 @@ find_memory (void)
 #ifdef CONFIG_VIRTUAL_MEM_MAP
 	efi_memmap_walk(filter_memory, memblock_add_node_shim);
 #else
-	memblock_add_node(0, PFN_PHYS(max_low_pfn), 0);
+	memblock_add_node(0, PFN_PHYS(max_low_pfn), 0, MEMBLOCK_NONE);
 #endif
 
 	find_initrd();
