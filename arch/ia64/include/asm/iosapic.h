@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 #ifndef __ASM_IA64_IOSAPIC_H
 #define __ASM_IA64_IOSAPIC_H
+#include <linux/types.h>
+#include <linux/io.h>
 
 #define	IOSAPIC_REG_SELECT	0x0
 #define	IOSAPIC_WINDOW		0x10

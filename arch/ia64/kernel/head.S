@@ -182,7 +182,7 @@ swapper_pg_dir:
 halt_msg:
 	stringz "Halting kernel\n"
 
-	__REF
+	__HEAD
 
 	.global start_ap
 
