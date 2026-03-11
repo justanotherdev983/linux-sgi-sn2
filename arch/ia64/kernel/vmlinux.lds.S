@@ -40,15 +40,15 @@ SECTIONS {
 	code : {
 	} :code
 	. = KERNEL_START;
-	phys_start = ABSOLUTE(. - LOAD_OFFSET);
+	phys_start = _start - LOAD_OFFSET;
 
 	_text = .;
 	_stext = .;
-
 	.text : AT(ADDR(.text) - LOAD_OFFSET) {
 		__start_ivt_text = .;
 		*(.text..ivt)
 		__end_ivt_text = .;
+		HEAD_TEXT
 		TEXT_TEXT
 		SCHED_TEXT
 		NOINSTR_TEXT
@@ -172,6 +172,7 @@ SECTIONS {
 		*(.data..gate)
 		__stop_gate_section = .;
 	}
+
 	/*
 	 * make sure the gate page doesn't expose
 	 * kernel data
@@ -186,7 +187,7 @@ SECTIONS {
 		PERCPU_INPUT(SMP_CACHE_BYTES)
 		__per_cpu_end = .;
 	} :percpu
-	__phys_per_cpu_start = __per_cpu_load - LOAD_OFFSET;
+	__phys_per_cpu_start = __per_cpu_load;
 	. = __per_cpu_load + PERCPU_PAGE_SIZE;
 
 	data : {

@@ -48,7 +48,7 @@ extern int reserve_elfcorehdr(u64 *start, u64 *end);
 #define GRANULEROUNDDOWN(n)	((n) & ~(IA64_GRANULE_SIZE-1))
 #define GRANULEROUNDUP(n)	(((n)+IA64_GRANULE_SIZE-1) & ~(IA64_GRANULE_SIZE-1))
 
-#ifdef CONFIG_NUMA
+#ifdef CONFIG_DISCONTIGMEM
   extern void call_pernode_memory (unsigned long start, unsigned long len, void *func);
 #else
 # define call_pernode_memory(start, len, func)	(*func)(start, len, 0)
