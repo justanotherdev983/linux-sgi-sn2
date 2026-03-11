@@ -6,6 +6,7 @@
 #include <linux/memblock.h>
 #include <linux/numa.h>
 #include <linux/numa_memblks.h>
+#include <linux/mmzone.h>
 
 #include <asm/numa.h>
 
@@ -430,6 +431,7 @@ static int __init numa_register_meminfo(struct numa_meminfo *mi)
 	if (IS_ENABLED(NODE_NOT_IN_PAGE_FLAGS)) {
 		unsigned long pfn_align = node_map_pfn_alignment();
 
+#ifdef CONFIG_SPARSEMEM
 		if (pfn_align && pfn_align < PAGES_PER_SECTION) {
 			unsigned long node_align_mb = PFN_PHYS(pfn_align) / SZ_1M;
 
@@ -439,6 +441,7 @@ static int __init numa_register_meminfo(struct numa_meminfo *mi)
 				node_align_mb, sect_align_mb);
 			return -EINVAL;
 		}
+#endif
 	}
 
 	return 0;

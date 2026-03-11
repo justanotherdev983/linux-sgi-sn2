@@ -303,7 +303,7 @@ sys_fw_init (const char *args, int arglen)
 	efi_runtime->reset_system = (void *)__pa(&efi_reset_system);
 
 	efi_tables->guid = SAL_SYSTEM_TABLE_GUID;
-	efi_tables->table = __pa(sal_systab);
+	efi_tables->table = (void *)__pa(sal_systab);
 
 	/* fill in the SAL system table: */
 	memcpy(sal_systab->signature, "SST_", 4);
@@ -372,3 +372,7 @@ sys_fw_init (const char *args, int arglen)
 
 	return bp;
 }
+
+#ifdef CONFIG_IA64_GENERIC
+struct ia64_machine_vector ia64_mv;
+#endif

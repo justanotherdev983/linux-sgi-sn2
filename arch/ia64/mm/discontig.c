@@ -1,3 +1,5 @@
+#include <asm/nodedata.h>
+#include <asm/acpi.h>
 // SPDX-License-Identifier: GPL-2.0
 /*
  * Copyright (c) 2000, 2003 Silicon Graphics, Inc.  All rights reserved.
@@ -17,6 +19,7 @@
 
 #include <linux/kernel.h>
 #include <linux/mm.h>
+#include <asm/nodedata.h>
 #include <linux/nmi.h>
 #include <linux/swap.h>
 #include <linux/memblock.h>
@@ -552,6 +555,7 @@ void *per_cpu_init(void)
  * Take this opportunity to round the start address up and the end address
  * down to page boundaries.
  */
+#ifdef CONFIG_DISCONTIGMEM
 void call_pernode_memory(unsigned long start, unsigned long len, void *arg)
 {
 	unsigned long rs, re, end = start + len;
@@ -584,6 +588,7 @@ void call_pernode_memory(unsigned long start, unsigned long len, void *arg)
 			break;
 	}
 }
+#endif /* CONFIG_DISCONTIGMEM */
 
 /**
  * paging_init - setup page tables

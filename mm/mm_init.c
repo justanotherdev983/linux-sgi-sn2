@@ -38,7 +38,7 @@
 
 #include <asm/setup.h>
 
-#ifndef CONFIG_NUMA
+#if !defined(CONFIG_NUMA) || defined(CONFIG_FLATMEM)
 unsigned long max_mapnr;
 EXPORT_SYMBOL(max_mapnr);
 
