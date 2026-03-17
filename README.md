@@ -25,6 +25,8 @@ because I cant push a shallow clone without clean diff's I applied.
 ## Build
 
 ```bash
+
+make ARCH=ia64 clean 
 make ARCH=ia64 CROSS_COMPILE=ia64-linux-gnu- defconfig
 
 # Build
@@ -41,6 +43,7 @@ ski is an ia64  simulator that can boot the kernel without real hardware.
 
 ### Build for SKI
 ```bash
+make ARCH=ia64 clean 
 cp configs/ski_defconfig.config .config # or any other working ski config; this is the one i use
 make ARCH=ia64 olddefconfig 
 make ARCH=ia64 CROSS_COMPILE=ia64-linux-gnu- -j$(nproc)
