@@ -416,7 +416,7 @@ ptep_test_and_clear_young (struct vm_area_struct *vma, unsigned long addr, pte_t
 	pte_t pte = *ptep;
 	if (!pte_young(pte))
 		return 0;
-	set_pte_at(vma->vm_mm, addr, ptep, pte_mkold(pte));
+	set_pte(ptep, pte_mkold(pte));
 	return 1;
 #endif
 }
@@ -445,7 +445,7 @@ ptep_set_wrprotect(struct mm_struct *mm, unsigned long addr, pte_t *ptep)
 	} while (cmpxchg((unsigned long *) ptep, old, new) != old);
 #else
 	pte_t old_pte = *ptep;
-	set_pte_at(mm, addr, ptep, pte_wrprotect(old_pte));
+	set_pte(ptep, pte_wrprotect(old_pte));
 #endif
 }
 
@@ -535,7 +535,7 @@ extern struct page *zero_page_memmap_ptr;
 ({									\
 	int __changed = !pte_same(*(__ptep), __entry);			\
 	if (__changed) {						\
-		set_pte_at((__vma)->vm_mm, (__addr), __ptep, __entry);	\
+		set_pte((__ptep), (__entry));	\
 		flush_tlb_page(__vma, __addr);				\
 	}								\
 	__changed;							\
