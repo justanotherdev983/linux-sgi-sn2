@@ -727,6 +727,10 @@ int __init acpi_boot_init(void)
 
 	/* I/O APIC */
 
+// XXX: Hacky fix BOU
+#ifndef NR_IOSAPICS
+#define NR_IOSAPICS 256
+#endif
 	if (acpi_table_parse_madt
 	    (ACPI_MADT_TYPE_IO_SAPIC, acpi_parse_iosapic, NR_IOSAPICS) < 1) {
 		if (!ia64_platform_is("sn2"))
@@ -782,12 +786,14 @@ int acpi_gsi_to_irq(u32 gsi, unsigned int *irq)
 
 	if (has_8259 && gsi < 16)
 		*irq = isa_irq_to_vector(gsi);
+	/* XXX: Hacky fix BOU
 	else {
 		tmp = gsi_to_irq(gsi);
 		if (tmp == -1)
 			return -1;
 		*irq = tmp;
 	}
+	*/
 	return 0;
 }
 
