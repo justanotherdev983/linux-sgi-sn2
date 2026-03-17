@@ -100,6 +100,7 @@ wrap_mmu_context (struct mm_struct *mm)
 		if (i != cpu)
 			per_cpu(ia64_need_tlb_flush, i) = 1;
 	put_cpu();
+	return; // XXX: Hacky fix BOU; skip tlb flush for debug
 	local_flush_tlb_all();
 }
 
