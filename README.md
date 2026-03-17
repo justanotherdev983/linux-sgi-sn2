@@ -41,7 +41,8 @@ ski is an ia64  simulator that can boot the kernel without real hardware.
 
 ### Build for SKI
 ```bash
-make ARCH=ia64 sn2_ski_defconfig
+cp configs/ski_defconfig.config .config # or any other working ski config; this is the one i use
+make ARCH=ia64 olddefconfig 
 make ARCH=ia64 CROSS_COMPILE=ia64-linux-gnu- -j$(nproc)
 ```
 
@@ -60,7 +61,7 @@ sudo umount mnt
 sudo bski -forcesystem -noconsole \
   arch/ia64/hp/sim/boot/bootloader \
   vmlinux \
-  "root=/dev/sda simscsi=$(pwd)/sda machvec=hpsim init=/bin/bash PATH=/bin rw"
+  "root=/dev/sda simscsi=$(pwd)/sda machvec=hpsim init=/bin/bash PATH=/bin rw noirqdebug nomca"
 ```
 
 ## Status
@@ -74,13 +75,13 @@ Currently it builds and boots(and crashes)!
 - Kconfig/Makefile wiring for all restored drivers
 - `drivers/firmware/qcom/Kconfig` fix (pre-existing 6.19.6 bug affecting ia64 builds)
 - It compiles successfully
-- In ski boots, but hits NULL ptr dereference
+- In ski boots, but crashes shortly after 
 
 
 **Known issues:**
 - There are some changes that touch core files
-- We get a few build warnings, nothing too bad
-- Nullptr dereference crash on boot
+- We get a few build warnings, nothing too bad but they are very noisy
+- Crashes on ski boot
 
 **Patches:**
 - All current saved listed patches are in custom-linux-sgi-sn2-patch-series/
