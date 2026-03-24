@@ -2042,10 +2042,17 @@ __latent_entropy struct task_struct *copy_process(
 	spin_lock_irq(&current->sighand->siglock);
 	if (!(clone_flags & CLONE_THREAD))
 		hlist_add_head(&delayed.node, &current->signal->multiprocess);
+
+	/* ia64: clear spurious shared pending signals on swapper */
+	if ((current->pid == 0))
+		sigemptyset(&current->signal->shared_pending.signal);
+
 	recalc_sigpending();
 	spin_unlock_irq(&current->sighand->siglock);
+
+
 	retval = -ERESTARTNOINTR;
-	if (task_sigpending(current))
+	if (task_sigpending(current) && !(current->pid == 0))
 		goto fork_out;
 
 	retval = -ENOMEM;

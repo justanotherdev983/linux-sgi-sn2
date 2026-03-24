@@ -23,14 +23,16 @@
  *		  present during boot. This macro can be used once cpu_init
  *		  completes.
  */
+#ifdef CONFIG_NUMA
 #define NODE_DATA(nid)		(local_node_data->pg_data_ptrs[nid])
+#else
+#define NODE_DATA(nid)		(&contig_page_data)
+#endif
 
 
 
 #include <asm/percpu.h>
 #include <asm/mmzone.h>
-
-#ifdef CONFIG_NUMA
 
 /*
  * Node Data. One of these structures is located on each node of a NUMA system.
@@ -60,7 +62,5 @@ struct ia64_node_data {
 #define LOCAL_DATA_ADDR(pgdat)  			\
 	((struct ia64_node_data *)((u64)(pgdat) + 	\
 				   L1_CACHE_ALIGN(sizeof(struct pglist_data))))
-
-#endif /* CONFIG_NUMA */
 
 #endif /* _ASM_IA64_NODEDATA_H */

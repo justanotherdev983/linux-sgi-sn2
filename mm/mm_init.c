@@ -42,8 +42,10 @@
 unsigned long max_mapnr;
 EXPORT_SYMBOL(max_mapnr);
 
+#ifndef CONFIG_VIRTUAL_MEM_MAP
 struct page *mem_map;
 EXPORT_SYMBOL(mem_map);
+#endif
 #endif
 
 /*
@@ -1661,6 +1663,16 @@ static void __init alloc_node_mem_map(struct pglist_data *pgdat)
 	 * for the buddy allocator to function correctly.
 	 */
 	end = ALIGN(pgdat_end_pfn(pgdat), MAX_ORDER_NR_PAGES);
+	/*
+	 * If node_mem_map is already set by the architecture (e.g. ia64
+	 * VIRTUAL_MEM_MAP sets it to vmem_map in paging_init()), skip
+	 * allocating a new flat array and just set the globals.
+	 */
+	if (pgdat->node_mem_map) {
+		mem_map = pgdat->node_mem_map;
+		max_mapnr = end - start;
+		return;
+	}
 	size =  (end - start) * sizeof(struct page);
 	map = memmap_alloc(size, SMP_CACHE_BYTES, MEMBLOCK_LOW_LIMIT,
 			   pgdat->node_id, false);

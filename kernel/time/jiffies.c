@@ -31,6 +31,7 @@ static u64 jiffies_read(struct clocksource *cs)
  */
 static struct clocksource clocksource_jiffies = {
 	.name			= "jiffies",
+	.id 			= CSID_GENERIC,
 	.rating			= 1, /* lowest valid rating*/
 	.uncertainty_margin	= 32 * NSEC_PER_MSEC,
 	.read			= jiffies_read,

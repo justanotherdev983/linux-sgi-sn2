@@ -102,7 +102,7 @@ static int early_nr_cpus_node(int node)
 {
 	int cpu, n = 0;
 
-	for_each_possible_early_cpu(cpu)
+	for_each_possible_cpu(cpu)
 		if (node == node_cpuid[cpu].nid)
 			n++;
 
@@ -141,7 +141,7 @@ static void *per_cpu_node_setup(void *cpu_data, int node)
 #ifdef CONFIG_SMP
 	int cpu;
 
-	for_each_possible_early_cpu(cpu) {
+	for_each_possible_cpu(cpu) {
 		void *src = cpu == 0 ? __cpu0_per_cpu : __phys_per_cpu_start;
 
 		if (node != node_cpuid[cpu].nid)
@@ -406,7 +406,7 @@ static void __init initialize_pernode_data(void)
 
 #ifdef CONFIG_SMP
 	/* Set the node_data pointer for each per-cpu struct */
-	for_each_possible_early_cpu(cpu) {
+	for_each_possible_cpu(cpu) {
 		node = node_cpuid[cpu].nid;
 		per_cpu(ia64_cpu_info, cpu).node_data =
 			mem_data[node].node_data;
@@ -534,7 +534,7 @@ void *per_cpu_init(void)
 
 	if (first_time) {
 		first_time = 0;
-		for_each_possible_early_cpu(cpu)
+		for_each_possible_cpu(cpu)
 			per_cpu(local_per_cpu_offset, cpu) = __per_cpu_offset[cpu];
 	}
 
