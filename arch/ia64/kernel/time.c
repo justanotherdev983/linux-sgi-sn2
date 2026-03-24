@@ -9,6 +9,7 @@
  * Copyright (C) 1999-2000 Walt Drummond <drummond@valinux.com>
  */
 
+#include <linux/clocksource_ids.h>
 #include <linux/cpu.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
@@ -51,6 +52,7 @@ EXPORT_SYMBOL(last_cli_ip);
 
 static struct clocksource clocksource_itc = {
 	.name           = "itc",
+	.id             = CSID_GENERIC,
 	.rating         = 350,
 	.read           = itc_get_cycles,
 	.mask           = CLOCKSOURCE_MASK(64),
@@ -265,12 +267,20 @@ void ia64_init_itm(void)
 	 */
 	status = ia64_sal_freq_base(SAL_FREQ_BASE_PLATFORM,
 				    &platform_base_freq, &platform_base_drift);
+
 	if (status != 0) {
 		printk(KERN_ERR "SAL_FREQ_BASE_PLATFORM failed: %s\n", ia64_sal_strerror(status));
 	} else {
-		status = ia64_pal_freq_ratios(&proc_ratio, NULL, &itc_ratio);
-		if (status != 0)
-			printk(KERN_ERR "PAL_FREQ_RATIOS failed with status=%ld\n", status);
+		if (ia64_platform_is("hpsim")) {
+			itc_ratio.num = 3;
+			itc_ratio.den = 1;
+			proc_ratio.num = 3;
+			proc_ratio.den = 1;
+		} else {
+			status = ia64_pal_freq_ratios(&proc_ratio, NULL, &itc_ratio);
+			if (status != 0)
+				printk(KERN_ERR "PAL_FREQ_RATIOS failed with status=%ld\n", status);
+		}
 	}
 	if (status != 0) {
 		/* invent "random" values */
@@ -349,12 +359,15 @@ void ia64_init_itm(void)
 	touch_softlockup_watchdog();
 
 	/* Setup the CPU local timer tick */
-	ia64_cpu_local_tick();
+	if (!ia64_platform_is("hpsim"))
+		ia64_cpu_local_tick();
 
 	if (!itc_clocksource) {
-		clocksource_register_hz(&clocksource_itc,
+		if (!ia64_platform_is("hpsim")) {
+			clocksource_register_hz(&clocksource_itc,
 						local_cpu_data->itc_freq);
-		itc_clocksource = &clocksource_itc;
+			itc_clocksource = &clocksource_itc;
+		}
 	}
 }
 
@@ -392,6 +405,11 @@ static struct irqaction timer_irqaction = {
 
 void read_persistent_clock64(struct timespec64 *ts)
 {
+	if (!efi_enabled(EFI_RUNTIME_SERVICES) || !efi.get_time) {
+		ts->tv_sec = 0;
+		ts->tv_nsec = 0;
+		return;
+	}
 	(*efi.get_time)((efi_time_t *)ts, NULL);
 }
 
