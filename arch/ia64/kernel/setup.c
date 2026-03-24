@@ -571,6 +571,8 @@ setup_arch (char **cmdline_p)
 #endif
 	find_memory();
 
+	memblock_reserve(__pa_symbol(_text), __pa_symbol(_end) - __pa_symbol(_text));
+
 	/* process SAL system table: */
 	ia64_sal_init(__va(ia64_sal_systab_phys));
 
@@ -615,6 +617,7 @@ setup_arch (char **cmdline_p)
 		ia64_mca_init();
 
 	platform_setup(cmdline_p);
+
 #ifndef CONFIG_IA64_HP_SIM
 	if (!ia64_platform_is("hpsim"))
 		check_sal_cache_flush();
@@ -835,13 +838,13 @@ identify_cpu (struct cpuinfo_ia64 *c)
 	if (status == PAL_STATUS_SUCCESS) {
 		impl_va_msb = vm2.pal_vm_info_2_s.impl_va_msb;
 		phys_addr_size = vm1.pal_vm_info_1_s.phys_add_size;
-		/* XXX: Hacky fix: Sanity check: impl_va_msb=60 causes VHPT to overlap kernel space */
+		/* Sanity check: impl_va_msb=60 causes VHPT to overlap kernel space */
 		if (impl_va_msb >= 60) {
 			printk(KERN_WARNING "PAL returned impl_va_msb=%lu, clamping to 50\n",
-				impl_va_msb);
+			       impl_va_msb);
 			impl_va_msb = 50;
 			phys_addr_size = 44;
-               }
+		}
 	}
 	c->unimpl_va_mask = ~((7L<<61) | ((1L << (impl_va_msb + 1)) - 1));
 	c->unimpl_pa_mask = ~((1L<<63) | ((1L << phys_addr_size) - 1));
@@ -1004,10 +1007,9 @@ cpu_init (void)
 					| IA64_DCR_DA | IA64_DCR_DD | IA64_DCR_LC));
 	mmgrab(&init_mm);
 	current->active_mm = &init_mm;
-	BUG_ON(current->mm);
 
 	ia64_mmu_init(ia64_imva(cpu_data));
-	// XXX: Hacky fix BOU
+
 	if (!nomca)
 		ia64_mca_cpu_init(ia64_imva(cpu_data));
 
