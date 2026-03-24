@@ -719,6 +719,8 @@ static noinline void __ref __noreturn rest_init(void)
 	 * the init task will end up wanting to create kthreads, which, if
 	 * we schedule it before we create kthreadd, will OOPS.
 	 */
+	/* ia64: clear spurious TIF_SIGPENDING on swapper before forking init */
+	clear_thread_flag(TIF_SIGPENDING);
 	pid = user_mode_thread(kernel_init, NULL, CLONE_FS);
 	/*
 	 * Pin init on the boot CPU. Task migration is not properly working

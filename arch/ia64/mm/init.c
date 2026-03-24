@@ -695,7 +695,25 @@ mem_init (void)
 #endif
 
 	high_memory = __va(max_low_pfn * PAGE_SIZE);
-	memblock_free_all();
+
+	{
+		extern struct group_info init_groups;
+
+		struct cred *cred = (struct cred *)init_task.cred;
+
+		if (!cred->user) {
+			extern struct user_struct root_user;
+			extern struct user_namespace init_user_ns;
+			extern struct ucounts init_ucounts;
+
+			cred->user = &root_user;
+			cred->user_ns = &init_user_ns;
+			cred->ucounts = &init_ucounts;
+			cred->group_info = &init_groups;
+			atomic_long_set(&cred->usage, 4);
+			printk(KERN_ERR "IA64: Fixed up null init_cred fields\n");
+    }
+}
 
 	/*
 	 * For fsyscall entrpoints with no light-weight handler, use the ordinary

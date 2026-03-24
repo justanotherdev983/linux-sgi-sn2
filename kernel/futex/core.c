@@ -274,6 +274,8 @@ static void futex_pivot_hash(struct mm_struct *mm)
 struct futex_private_hash *futex_private_hash(void)
 {
 	struct mm_struct *mm = current->mm;
+	if (!mm)
+		return NULL;
 	/*
 	 * Ideally we don't loop. If there is a replacement in progress
 	 * then a new private hash is already prepared and a reference can't be
