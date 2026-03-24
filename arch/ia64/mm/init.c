@@ -11,6 +11,7 @@
 
 #include <linux/efi.h>
 #include <linux/elf.h>
+#include <linux/uaccess.h>
 #include <linux/memblock.h>
 #include <linux/mm.h>
 #include <linux/sched/signal.h>
@@ -34,10 +35,8 @@
 #include <asm/sal.h>
 #include <asm/sections.h>
 #include <asm/tlb.h>
-#include <linux/uaccess.h>
 #include <asm/unistd.h>
 #include <asm/mca.h>
-
 pgprot_t protection_map[16] __ro_after_init = {
 	[VM_NONE]					= PAGE_NONE,
 	[VM_READ]					= PAGE_READONLY,
@@ -59,7 +58,6 @@ pgprot_t protection_map[16] __ro_after_init = {
 DECLARE_VM_GET_PAGE_PROT
 
 extern void ia64_tlb_init (void);
-extern void memblock_free_all(void);
 
 extern void __meminit memmap_init_range(unsigned long size, int nid,
     unsigned long zone, unsigned long start_pfn,
@@ -565,7 +563,7 @@ virtual_memmap_init(u64 start, u64 end, void *arg)
 
 void __meminit
 ia64_memmap_init (unsigned long size, int nid, unsigned long zone,
-	     unsigned long start_pfn)
+            unsigned long start_pfn)
 {
 	if (!vmem_map) {
 		memmap_init_range(size, nid, zone, start_pfn, start_pfn + size,
@@ -573,6 +571,7 @@ ia64_memmap_init (unsigned long size, int nid, unsigned long zone,
 	} else {
 		struct page *start;
 		struct memmap_init_callback_data args;
+		struct memblock_region *r;
 
 		start = pfn_to_page(start_pfn);
 		args.start = start;
@@ -580,7 +579,18 @@ ia64_memmap_init (unsigned long size, int nid, unsigned long zone,
 		args.nid = nid;
 		args.zone = zone;
 
-		efi_memmap_walk(virtual_memmap_init, &args);
+		/*
+		 * efi_memmap_walk() iterates kern_memmap which applies
+		 * granule-boundary rounding and may miss regions on
+		 * simulators (e.g. ski) with a minimal EFI memory map.
+		 * Use memblock instead, which always reflects the true
+		 * physical memory layout by this point.
+		 */
+		for_each_mem_region(r) {
+			u64 mstart = r->base + PAGE_OFFSET;
+			u64 mend   = mstart + r->size;
+			virtual_memmap_init(mstart, mend, &args);
+		}
 	}
 }
 
@@ -589,10 +599,9 @@ ia64_pfn_valid (unsigned long pfn)
 {
 	char byte;
 	struct page *pg = pfn_to_page(pfn);
-
-	return     (__get_user(byte, (char __user *) pg) == 0)
+	return     (get_kernel_nofault(byte, (char *) pg) == 0)
 		&& ((((u64)pg & PAGE_MASK) == (((u64)(pg + 1) - 1) & PAGE_MASK))
-			|| (__get_user(byte, (char __user *) (pg + 1) - 1) == 0));
+			|| (get_kernel_nofault(byte, (char *) (pg + 1) - 1) == 0));
 }
 EXPORT_SYMBOL(ia64_pfn_valid);
 
