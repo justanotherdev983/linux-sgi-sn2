@@ -35,7 +35,7 @@ static unsigned long max_gap;
 static int __init
 memblock_add_node_shim(u64 start, u64 end, void *arg)
 {
-	memblock_add_node(start, end - start, (unsigned long)arg, MEMBLOCK_NONE);
+	memblock_add_node(start, end, (unsigned long)arg, MEMBLOCK_NONE);
 	return 0;
 }
 
@@ -196,28 +196,60 @@ paging_init (void)
 	max_zone_pfns[ZONE_NORMAL] = max_low_pfn;
 
 #ifdef CONFIG_VIRTUAL_MEM_MAP
-	efi_memmap_walk(find_largest_hole, (u64 *)&max_gap);
+
+	{
+		struct memblock_region *r;
+		phys_addr_t prev_end = 0;
+
+		for_each_mem_region(r) {
+			if (r->base - prev_end > max_gap)
+				max_gap = r->base - prev_end;
+			prev_end = r->base + r->size;
+		}
+	}
+
 	if (max_gap < LARGE_GAP) {
 		vmem_map = (struct page *) 0;
 	} else {
 		unsigned long map_size;
-
-		/* allocate virtual_mem_map */
+		struct memblock_region *r;
 
 		map_size = PAGE_ALIGN(ALIGN(max_low_pfn, MAX_ORDER_NR_PAGES) *
 			sizeof(struct page));
 		VMALLOC_END -= map_size;
 		vmem_map = (struct page *) VMALLOC_END;
-		efi_memmap_walk(create_mem_map_page_table, NULL);
 
-		/*
-		 * alloc_node_mem_map makes an adjustment for mem_map
-		 * which isn't compatible with vmem_map.
-		 */
-		NODE_DATA(0)->node_mem_map = vmem_map +	min_low_pfn;
+		{
+			u64 start = PAGE_OFFSET;  // pfn 0
+			u64 end   = PAGE_OFFSET + (ALIGN(max_low_pfn, MAX_ORDER_NR_PAGES)
+							<< PAGE_SHIFT);
+			create_mem_map_page_table(start, end, NULL);
+		}
 
-		printk("Virtual mem_map starts at 0x%p\n", mem_map);
+		NODE_DATA(0)->node_mem_map = vmem_map;
+		printk(KERN_INFO "Virtual mem_map starts at 0x%px\n", vmem_map);
+
+		/* Reserve pfns [0, min_low_pfn) in memblock so
+		 * memblock_free_all() never frees them. Their struct
+		 * pages exist in vmem_map but have no physical memory. */
+		if (min_low_pfn > 0)
+			memblock_reserve(0, min_low_pfn << PAGE_SHIFT);
+		/* Reserve holes between memblock regions so buddy never gets
+		 * uninitialized vmem_map pages for hole pfns */
+		{
+			struct memblock_region *r;
+			phys_addr_t prev_end = 0;
+			for_each_mem_region(r) {
+				if (r->base > prev_end)
+					memblock_reserve(prev_end, r->base - prev_end);
+				prev_end = r->base + r->size;
+			}
+			if (prev_end < ((phys_addr_t)max_low_pfn << PAGE_SHIFT))
+				memblock_reserve(prev_end,
+					((phys_addr_t)max_low_pfn << PAGE_SHIFT) - prev_end);
+		}
 	}
+
 #endif /* !CONFIG_VIRTUAL_MEM_MAP */
 	free_area_init(max_zone_pfns);
 	zero_page_memmap_ptr = virt_to_page(ia64_imva(empty_zero_page));

@@ -1662,11 +1662,6 @@ static inline bool has_managed_dma(void)
 #ifndef CONFIG_NUMA
 
 extern struct pglist_data contig_page_data;
-static inline struct pglist_data *NODE_DATA(int nid)
-{
-	return &contig_page_data;
-}
-
 #else /* CONFIG_NUMA */
 
 #include <asm/mmzone.h>

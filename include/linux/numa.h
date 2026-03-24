@@ -64,6 +64,10 @@ static inline int phys_to_target_node(u64 start)
 }
 
 static inline void alloc_offline_node_data(int nid) {}
+extern struct pglist_data contig_page_data;
+#ifndef NODE_DATA
+#define NODE_DATA(nid)	(&contig_page_data)
+#endif
 #endif
 
 #define numa_map_to_online_node(node) numa_nearest_node(node, N_ONLINE)
