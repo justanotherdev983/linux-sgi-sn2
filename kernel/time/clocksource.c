@@ -1239,7 +1239,7 @@ int __clocksource_register_scale(struct clocksource *cs, u32 scale, u32 freq)
 
 	clocksource_arch_init(cs);
 
-	if (WARN_ON_ONCE((unsigned int)cs->id >= CSID_MAX))
+	if ((unsigned int)cs->id >= CSID_MAX)
 		cs->id = CSID_GENERIC;
 	if (cs->vdso_clock_mode < 0 ||
 	    cs->vdso_clock_mode >= VDSO_CLOCKMODE_MAX) {
