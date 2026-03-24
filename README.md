@@ -1,6 +1,6 @@
 # linux-ia64-sn2
 
-Restoration of the SGI SN2 (Altix) ia64 platform and drivers to Linux stable v6.19.6.
+Restoration of ia64 and specifically the SGI SN2 (Altix) ia64 platform and drivers to Linux stable v6.19.6.
 
 The original code was removed in kernel 5.4 via
 [76f0f227cffb](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=76f0f227cffb570bc5ce343b1750f14907371d80).
@@ -16,7 +16,7 @@ For this git(hub) repo i cloned the linux-stable v6.19.6 branch
 and deleted .git and manually commit it as initial base commit,
 because I cant push a shallow clone without clean diff's I applied.
 
-!!!So all original git history is completly gone unfortunatly!!!
+!!!So all original git history from upstream linux kernel are completly gone unfortunatly!!!
 
 ## Dependencies
 
@@ -64,7 +64,7 @@ sudo umount mnt
 sudo bski -forcesystem -noconsole \
   arch/ia64/hp/sim/boot/bootloader \
   vmlinux \
-  "root=/dev/sda simscsi=$(pwd)/sda machvec=hpsim init=/bin/bash PATH=/bin rw noirqdebug nomca"
+  "root=/dev/sda simscsi=$(pwd)/sd machvec=hpsim init=/bin/bash PATH=/bin:sbin:/usr/bin rw acpi=off noirqdebug nomca console=simcons lpj=1000000"
 ```
 
 ## Status
@@ -78,7 +78,12 @@ Currently it builds and boots(and crashes)!
 - Kconfig/Makefile wiring for all restored drivers
 - `drivers/firmware/qcom/Kconfig` fix (pre-existing 6.19.6 bug affecting ia64 builds)
 - It compiles successfully
-- In ski boots, but crashes shortly after 
+- In ski boots
+- ...
+- Initliazes IRQ
+- Goes to copy_thread, UAF refcount_t -> 
+    Unable to andle kernel paging request...
+- Hangs there after some recursive NULL ptr deref errors
 
 
 **Known issues:**
@@ -90,6 +95,7 @@ Currently it builds and boots(and crashes)!
 - All current saved listed patches are in custom-linux-sgi-sn2-patch-series/
     and each represent an individual patch to apply to mainline kernel.
 - The code you see in this repo has the latest commited changes
+- Read the README.md in custom-linux-sgi-sn2-patch-series/ for further info.
 
 ## Contributing
 
@@ -97,4 +103,3 @@ PRs and contributions in any way/shape/form are always welcome and highly apprec
 
 Personally I don't have the hardware to actually test this,
 so if you have access to SGI Altix hardware for testing that would be amazing
-
