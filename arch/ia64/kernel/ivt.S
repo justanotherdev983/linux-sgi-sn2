@@ -759,7 +759,7 @@ ENTRY(break_fault)
 ///////////////////////////////////////////////////////////////////////
 	mov r1=r16				// A    move task-pointer to "addl"-addressable reg
 	mov r2=r16				// A    setup r2 for ia64_syscall_setup
-	add r9=TI_FLAGS+IA64_TASK_SIZE,r16	// A	r9 = &current_thread_info()->flags
+	add r9=TASK_TI_FLAGS,r16	// A	r9 = &current_thread_info()->flags
 
 	adds r16=IA64_TASK_THREAD_ON_USTACK_OFFSET,r16
 	adds r15=-1024,r15			// A    subtract 1024 from syscall number
