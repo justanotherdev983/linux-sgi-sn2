@@ -597,7 +597,7 @@ GLOBAL_ENTRY(ia64_ret_from_clone)
 }
 .ret8:
 (pKStk)	br.call.sptk.many rp=call_payload
-	adds r2=TI_FLAGS+IA64_TASK_SIZE,r13
+	adds r2=TASK_TI_FLAGS,r13
 	;;
 	ld4 r2=[r2]
 	;;
@@ -695,7 +695,7 @@ ia64_work_processed_syscall:
 #ifdef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
 	adds r2=PT(LOADRS)+16,r12
 	MOV_FROM_ITC(pUStk, p9, r22, r19)	// fetch time at leave
-	adds r18=TI_FLAGS+IA64_TASK_SIZE,r13
+	adds r18=TASK_TI_FLAGS,r13
 	;;
 (p6)	ld4 r31=[r18]				// load current_thread_info()->flags
 	ld8 r19=[r2],PT(B6)-PT(LOADRS)		// load ar.rsc value for "loadrs"
@@ -704,7 +704,7 @@ ia64_work_processed_syscall:
 #else
 	adds r2=PT(LOADRS)+16,r12
 	adds r3=PT(AR_BSPSTORE)+16,r12
-	adds r18=TI_FLAGS+IA64_TASK_SIZE,r13
+	adds r18=TASK_TI_FLAGS,r13
 	;;
 (p6)	ld4 r31=[r18]				// load current_thread_info()->flags
 	ld8 r19=[r2],PT(B6)-PT(LOADRS)		// load ar.rsc value for "loadrs"
@@ -835,7 +835,7 @@ GLOBAL_ENTRY(ia64_leave_kernel)
 (pUStk)	cmp.eq.unc p6,p0=r0,r0		// p6 <- pUStk
 #endif
 .work_processed_kernel:
-	adds r17=TI_FLAGS+IA64_TASK_SIZE,r13
+	adds r17=TASK_TI_FLAGS,r13
 	;;
 (p6)	ld4 r31=[r17]				// load current_thread_info()->flags
 	adds r21=PT(PR)+16,r12
