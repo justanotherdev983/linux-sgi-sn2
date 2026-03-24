@@ -101,3 +101,9 @@ PHONY += make_nr_irqs_h
 
 make_nr_irqs_h:
 	$(Q)$(MAKE) $(build)=arch/ia64/kernel include/generated/nr-irqs.h
+KBUILD_CFLAGS += -fno-ipa-sra
+KBUILD_CFLAGS += -fno-optimize-sibling-calls
+KBUILD_CFLAGS += -fno-ipa-cp -fno-ipa-icf
+KBUILD_CFLAGS   += -fno-PIE -fno-pic
+KBUILD_AFLAGS   += -fno-PIE
+LDFLAGS_vmlinux += -no-pie
