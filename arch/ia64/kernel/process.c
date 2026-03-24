@@ -379,6 +379,7 @@ copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
 	ia64_drop_fpu(p);	/* don't pick up stale state from a CPU's fph */
 
 	if (unlikely(p->flags & PF_KTHREAD)) {
+		/* user_mode_thread called from swapper has no valid user pt_regs */
 		if (unlikely(!user_stack_base)) {
 			/* fork_idle() called us */
 			return 0;
@@ -409,6 +410,24 @@ copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
 
 		return 0;
 	}
+	/* user_mode_thread called from swapper has no valid user pt_regs */
+	if (unlikely(current->pid == 0 && !(p->flags & PF_KTHREAD))) {
+		memset(child_stack, 0, sizeof(*child_ptregs) + sizeof(*child_stack));
+		child_ptregs->cr_ipsr = ia64_getreg(_IA64_REG_PSR) | IA64_PSR_BN;
+		child_ptregs->cr_ifs = 1UL << 63;
+		child_stack->ar_fpsr = child_ptregs->ar_fpsr = ia64_getreg(_IA64_REG_AR_FPSR);
+		child_stack->pr = (1 << PRED_KERNEL_STACK);
+		child_stack->ar_bspstore = child_rbs;
+		child_stack->b0 = (unsigned long) &ia64_ret_from_clone;
+		child_ptregs->cr_ipsr = ((child_ptregs->cr_ipsr | IA64_PSR_BITS_TO_SET)
+			& ~(IA64_PSR_BITS_TO_CLEAR | IA64_PSR_PP | IA64_PSR_UP));
+		/* Set up kernel_init function and argument */
+		child_stack->r4 = (unsigned long) args->fn;
+		child_stack->r5 = (unsigned long) args->fn_arg;
+
+		return 0;
+	}
+
 	stack = ((struct switch_stack *) regs) - 1;
 	/* copy parent's switch_stack & pt_regs to child: */
 	memcpy(child_stack, stack, sizeof(*child_ptregs) + sizeof(*child_stack));
