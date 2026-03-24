@@ -10,3 +10,4 @@ obj-$(CONFIG_NUMA)	   += numa.o
 obj-$(CONFIG_DISCONTIGMEM) += discontig.o
 obj-$(CONFIG_SPARSEMEM)	   += discontig.o
 obj-$(CONFIG_FLATMEM)	   += contig.o
+CFLAGS_tlb.o := -fno-ipa-sra
