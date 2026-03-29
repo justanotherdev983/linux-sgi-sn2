@@ -173,6 +173,7 @@ void __next_mem_range_rev(u64 *idx, int nid, enum memblock_flags flags,
 			  phys_addr_t *out_end, int *out_nid);
 
 void memblock_free_late(phys_addr_t base, phys_addr_t size);
+void memblock_free_all(void);
 
 #ifdef CONFIG_HAVE_MEMBLOCK_PHYS_MAP
 static inline void __next_physmem_range(u64 *idx, struct memblock_type *type,
