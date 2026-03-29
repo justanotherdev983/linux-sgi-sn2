@@ -71,7 +71,7 @@ sudo bski -forcesystem -noconsole \
 
 Work in progress.
 
-Currently it builds and boots(and crashes)!
+Currently it builds and boots, then hangs at SCSI disk searching!
 
 **Completed:**
 - Restoration of 437 files: `arch/ia64/`, `arch/ia64/sn/`, `drivers/sn/`, `drivers/char/` (snsc, mspec, mbcs), `drivers/misc/ioc4`, `drivers/misc/sgi-xp/`, `drivers/tty/serial/` (sn_console, ioc4, ioc3), `drivers/pci/hotplug/sgi_hotplug`, `drivers/char/agp/sgi-agp`
@@ -79,17 +79,14 @@ Currently it builds and boots(and crashes)!
 - `drivers/firmware/qcom/Kconfig` fix (pre-existing 6.19.6 bug affecting ia64 builds)
 - It compiles successfully
 - In ski boots
-- ...
-- Initliazes IRQ
-- Goes to copy_thread, UAF refcount_t -> 
-    Unable to andle kernel paging request...
-- Hangs there after some recursive NULL ptr deref errors
+- Setup core stuff
+- After scsi host0 simulated SCSI host adapter it hangs
 
 
 **Known issues:**
 - There are some changes that touch core files
-- We get a few build warnings, nothing too bad but they are very noisy
-- Crashes on ski boot
+- We get a few build noisy warnings, nothing too bad
+- Hangs on ski boot
 
 **Patches:**
 - All current saved listed patches are in custom-linux-sgi-sn2-patch-series/
