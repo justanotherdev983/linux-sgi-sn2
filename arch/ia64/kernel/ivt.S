@@ -822,8 +822,8 @@ ENTRY(break_fault)
 1:
 #ifdef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
 	// mov.m r30=ar.itc is called in advance, and r13 is current
-	add r16=TI_AC_STAMP+IA64_TASK_SIZE,r13	// A
-	add r17=TI_AC_LEAVE+IA64_TASK_SIZE,r13	// A
+	add r16=TASK_TI_AC_STAMP,r13	// A
+	add r17=TASK_TI_AC_LEAVE,r13	// A
 (pKStk)	br.cond.spnt .skip_accounting		// B	unlikely skip
 	;;
 	ld8 r18=[r16],TI_AC_STIME-TI_AC_STAMP	// M  get last stamp
@@ -1056,8 +1056,8 @@ END(ia64_syscall_setup)
 	 */
 GLOBAL_ENTRY(account_sys_enter)
 	// mov.m r20=ar.itc is called in advance, and r13 is current
-	add r16=TI_AC_STAMP+IA64_TASK_SIZE,r13
-	add r17=TI_AC_LEAVE+IA64_TASK_SIZE,r13
+	add r16=TASK_TI_AC_STAMP,r13
+	add r17=TASK_TI_AC_LEAVE,r13
 	;;
 	ld8 r18=[r16],TI_AC_STIME-TI_AC_STAMP	// time at last check in kernel
 	ld8 r19=[r17],TI_AC_UTIME-TI_AC_LEAVE	// time at left from kernel

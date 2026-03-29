@@ -415,6 +415,7 @@ ia64_peek (struct task_struct *child, struct switch_stack *child_stack,
 	child_regs = task_pt_regs(child);
 	bspstore = (unsigned long *) child_regs->ar_bspstore;
 	krbs = (unsigned long *) child + IA64_RBS_OFFSET/8;
+	krbs = (unsigned long *) task_stack_page(child) + IA64_RBS_OFFSET/8;
 	if (on_kernel_rbs(addr, (unsigned long) bspstore,
 			  (unsigned long) urbs_end))
 	{
@@ -474,7 +475,7 @@ ia64_poke (struct task_struct *child, struct switch_stack *child_stack,
 	laddr = (unsigned long *) addr;
 	child_regs = task_pt_regs(child);
 	bspstore = (unsigned long *) child_regs->ar_bspstore;
-	krbs = (unsigned long *) child + IA64_RBS_OFFSET/8;
+	krbs = (unsigned long *) task_stack_page(child) + IA64_RBS_OFFSET/8;
 	if (on_kernel_rbs(addr, (unsigned long) bspstore,
 			  (unsigned long) urbs_end))
 	{
@@ -514,7 +515,7 @@ ia64_get_user_rbs_end (struct task_struct *child, struct pt_regs *pt,
 	unsigned long *krbs, *bspstore, cfm = pt->cr_ifs;
 	long ndirty;
 
-	krbs = (unsigned long *) child + IA64_RBS_OFFSET/8;
+	krbs = (unsigned long *) task_stack_page(child) + IA64_RBS_OFFSET/8;
 	bspstore = (unsigned long *) pt->ar_bspstore;
 	ndirty = ia64_rse_num_regs(krbs, krbs + (pt->loadrs >> 19));
 
@@ -739,7 +740,7 @@ convert_to_non_syscall (struct task_struct *child, struct pt_regs  *pt,
 			return;
 
 		unw_get_sp(&info, &sp);
-		if ((long)((unsigned long)child + IA64_STK_OFFSET - sp)
+		if ((long)((unsigned long)task_stack_page(child) + IA64_STK_OFFSET - sp)
 		    < IA64_PT_REGS_SIZE) {
 			dprintk("ptrace.%s: ran off the top of the kernel "
 				"stack\n", __func__);
@@ -2168,7 +2169,7 @@ static void syscall_get_set_args_cb(struct unw_frame_info *info, void *data)
 		return;
 
 	cfm = pt->cr_ifs;
-	krbs = (unsigned long *)info->task + IA64_RBS_OFFSET/8;
+	krbs = (unsigned long *) task_stack_page(info->task) + IA64_RBS_OFFSET/8;
 	ndirty = ia64_rse_num_regs(krbs, krbs + (pt->loadrs >> 19));
 
 	count = 0;

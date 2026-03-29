@@ -37,14 +37,27 @@ void foo(void)
 
 	BLANK();
 
-	DEFINE(TI_FLAGS, offsetof(struct thread_info, flags));
-	DEFINE(TI_CPU, offsetof(struct thread_info, cpu));
-	DEFINE(TI_PRE_COUNT, offsetof(struct thread_info, preempt_count));
+
+#ifdef CONFIG_THREAD_INFO_IN_TASK
+	DEFINE(TI_FLAGS,      offsetof(struct task_struct, thread_info.flags));
+	DEFINE(TASK_TI_PRE_COUNT, offsetof(struct task_struct, thread_info.preempt_count));
+	DEFINE(TASK_TI_CPU,       offsetof(struct task_struct, thread_info.cpu));
 #ifdef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
-	DEFINE(TI_AC_STAMP, offsetof(struct thread_info, ac_stamp));
-	DEFINE(TI_AC_LEAVE, offsetof(struct thread_info, ac_leave));
-	DEFINE(TI_AC_STIME, offsetof(struct thread_info, ac_stime));
-	DEFINE(TI_AC_UTIME, offsetof(struct thread_info, ac_utime));
+	DEFINE(TASK_TI_AC_STAMP,  offsetof(struct task_struct, thread_info.ac_stamp));
+	DEFINE(TASK_TI_AC_LEAVE,  offsetof(struct task_struct, thread_info.ac_leave));
+	DEFINE(TASK_TI_AC_STIME,  offsetof(struct task_struct, thread_info.ac_stime));
+	DEFINE(TASK_TI_AC_UTIME,  offsetof(struct task_struct, thread_info.ac_utime));
+#endif
+#else
+	DEFINE(TI_FLAGS,      offsetof(struct thread_info, flags));
+	DEFINE(TI_CPU,        offsetof(struct thread_info, cpu));
+	DEFINE(TI_PRE_COUNT,  offsetof(struct thread_info, preempt_count));
+	DEFINE(TI_AC_STAMP,   offsetof(struct thread_info, ac_stamp));
+	DEFINE(TI_AC_LEAVE,   offsetof(struct thread_info, ac_leave));
+	DEFINE(TI_AC_STIME,   offsetof(struct thread_info, ac_stime));
+	DEFINE(TI_AC_UTIME,   offsetof(struct thread_info, ac_utime));
+	DEFINE(TASK_TI_PRE_COUNT, sizeof(struct task_struct) + offsetof(struct thread_info, preempt_count));
+	DEFINE(TASK_TI_CPU,       sizeof(struct task_struct) + offsetof(struct thread_info, cpu));
 #endif
 
 	BLANK();
@@ -61,6 +74,7 @@ void foo(void)
 	DEFINE(IA64_TASK_TGID_OFFSET, offsetof (struct task_struct, tgid));
 	DEFINE(IA64_TASK_THREAD_KSP_OFFSET, offsetof (struct task_struct, thread.ksp));
 	DEFINE(IA64_TASK_THREAD_ON_USTACK_OFFSET, offsetof (struct task_struct, thread.on_ustack));
+	DEFINE(IA64_TASK_STACK_OFFSET, offsetof (struct task_struct, stack));
 
 	BLANK();
 

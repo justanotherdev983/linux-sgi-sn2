@@ -345,11 +345,11 @@ copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
 	struct pt_regs *regs = current_pt_regs();
 	int retval = 0;
 
-	child_ptregs = (struct pt_regs *) ((unsigned long) p + IA64_STK_OFFSET) - 1;
+	child_ptregs = (struct pt_regs *) ((unsigned long) task_stack_page(p) + IA64_STK_OFFSET) - 1;
 	child_stack = (struct switch_stack *) child_ptregs - 1;
 
-	rbs = (unsigned long) current + IA64_RBS_OFFSET;
-	child_rbs = (unsigned long) p + IA64_RBS_OFFSET;
+	rbs = (unsigned long) task_stack_page(current) + IA64_RBS_OFFSET;
+	child_rbs = (unsigned long) task_stack_page(p) + IA64_RBS_OFFSET;
 
 	/* copy parts of thread_struct: */
 	p->thread.ksp = (unsigned long) child_stack - 16;
@@ -380,13 +380,13 @@ copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
 
 	if (unlikely(p->flags & PF_KTHREAD)) {
 		/* user_mode_thread called from swapper has no valid user pt_regs */
-		if (unlikely(!user_stack_base)) {
+		if (unlikely(!args->fn)) {
 			/* fork_idle() called us */
 			return 0;
 		}
 		memset(child_stack, 0, sizeof(*child_ptregs) + sizeof(*child_stack));
-		child_stack->r4 = user_stack_base;	/* payload */
-		child_stack->r5 = user_stack_size;	/* argument */
+		child_stack->r4 = (unsigned long) args->fn;	    /* payload */
+		child_stack->r5 = (unsigned long) args->fn_arg;	/* argument */
 		/*
 		 * Preserve PSR bits, except for bits 32-34 and 37-45,
 		 * which we can't read.
@@ -424,6 +424,8 @@ copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
 		/* Set up kernel_init function and argument */
 		child_stack->r4 = (unsigned long) args->fn;
 		child_stack->r5 = (unsigned long) args->fn_arg;
+
+		p->thread.ksp = (unsigned long) child_stack - 16;
 
 		return 0;
 	}

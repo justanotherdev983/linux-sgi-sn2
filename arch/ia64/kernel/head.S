@@ -303,12 +303,22 @@ start_ap:
  	;;
 	ld8 r3=[r3]
 	movl r2=init_task
+#ifdef CONFIG_THREAD_INFO_IN_TASK
+	;;
+	movl r2=init_stack   // stack is separate from task struct
+	;;
+#endif
 	;;
 	cmp.eq isBP,isAP=r3,r0
 	;;
 (isAP)	mov r2=r3
 #else
 	movl r2=init_task
+#ifdef CONFIG_THREAD_INFO_IN_TASK
+	;;
+	movl r2=init_stack   // stack is separate from task struct
+#endif
+	;;
 	cmp.eq isBP,isAP=r0,r0
 #endif
 	;;
@@ -344,9 +354,19 @@ start_ap:
 
 .load_current:
 	// load the "current" pointer (r13) and ar.k6 with the current task
+#ifdef CONFIG_THREAD_INFO_IN_TASK
+	// With TITA, r2=init_stack (stack page), but r13 must point to init_task
+	// r8 is a scratch reg we can use here
+	movl r8=init_task
+	;;
+	mov IA64_KR(CURRENT)=r8		// virtual address of task struct
+	mov IA64_KR(CURRENT_STACK)=r16
+	mov r13=r8				// current = init_task
+#else
 	mov IA64_KR(CURRENT)=r2		// virtual address
 	mov IA64_KR(CURRENT_STACK)=r16
 	mov r13=r2
+#endif
 	/*
 	 * Reserve space at the top of the stack for "struct pt_regs".  Kernel
 	 * threads don't store interesting values in that structure, but the space

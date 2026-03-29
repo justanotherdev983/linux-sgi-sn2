@@ -18,16 +18,21 @@
 #define TASK_TI_FLAGS   (TI_FLAGS + IA64_TASK_SIZE)
 #endif
 
-#if defined(CONFIG_THREAD_INFO_IN_TASK)
-#define task_thread_info(tsk)   (&(tsk)->thread_info)
-#define current_thread_info()   (&current->thread_info)
-#elif defined(ASM_OFFSETS_C)
-// When generating asm offsets, we can't dereference task_struct yet
+#ifndef CONFIG_THREAD_INFO_IN_TASK
+#if defined(ASM_OFFSETS_C)
 #define task_thread_info(tsk)   ((struct thread_info *)0)
 #define current_thread_info()   ((struct thread_info *)0)
 #else
-#define current_thread_info()   ((struct thread_info *) ((char *) current + IA64_TASK_SIZE))
-#define task_thread_info(tsk)   ((struct thread_info *) ((char *) (tsk) + IA64_TASK_SIZE))
+#define current_thread_info()   ((struct thread_info *) \
+        ((char *) current + IA64_TASK_SIZE))
+#define task_thread_info(tsk)   ((struct thread_info *) \
+        ((char *) (tsk) + IA64_TASK_SIZE))
+#endif
+#endif /* CONFIG_THREAD_INFO_IN_TASK */
+
+#ifdef CONFIG_THREAD_INFO_IN_TASK
+#undef current_thread_info
+#define current_thread_info() ((struct thread_info *)current)
 #endif
 
 #define THREAD_SIZE			KERNEL_STACK_SIZE
@@ -70,16 +75,8 @@ struct thread_info {
 	.preempt_count	= INIT_PREEMPT_COUNT,	\
 }
 
-#ifndef ASM_OFFSETS_C
-/* how to get the thread information struct from C */
-#define current_thread_info()	((struct thread_info *) ((char *) current + IA64_TASK_SIZE))
-#define task_thread_info(tsk)	((struct thread_info *) ((char *) (tsk) + IA64_TASK_SIZE))
-#else
-#define current_thread_info()	((struct thread_info *) 0)
-#endif
-
 // BOU: XXX maybe we should instead check ifdef and the nundef and define our own? hmm
-#ifndef task_stack_page
+#if !defined(CONFIG_THREAD_INFO_IN_TASK) && !defined(task_stack_page)
 #define task_stack_page(tsk)	((void *)(tsk))
 #endif
 

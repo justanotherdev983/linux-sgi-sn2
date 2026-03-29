@@ -25,6 +25,7 @@ config IA64
 	select HAVE_DYNAMIC_FTRACE if (!ITANIUM)
 	select HAVE_FUNCTION_TRACER
 	select TTY
+	select THREAD_INFO_IN_TASK
 	select HAVE_ARCH_TRACEHOOK
 	select HAVE_MEMBLOCK_NODE_MAP
 	select CRASH_RESERVE if KEXEC
@@ -53,6 +54,7 @@ config IA64
 	select HAVE_ARCH_AUDITSYSCALL
 	select NEED_DMA_MAP_STATE
 	select NEED_SG_DMA_LENGTH
+	select SPARSE_IRQ
 	default y
 	help
 	  The Itanium Processor Family is Intel's 64-bit successor to
