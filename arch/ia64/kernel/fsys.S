@@ -336,7 +336,7 @@ ENTRY(fsys_getcpu)
 	;;
 	add r2=TASK_TI_FLAGS,r16
 	tnat.nz p6,p0 = r32			// guard against NaT argument
-	add r3=TI_CPU+IA64_TASK_SIZE,r16
+	add r3=TASK_TI_CPU,r16
 	;;
 	ld4 r3=[r3]				// M r3 = thread_info->cpu
 	ld4 r2=[r2]				// M r2 = thread_info->flags
@@ -511,8 +511,8 @@ GLOBAL_ENTRY(fsys_bubble_down)
 	;;
 #ifdef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
 	// mov.m r30=ar.itc is called in advance
-	add r16=TI_AC_STAMP+IA64_TASK_SIZE,r2
-	add r17=TI_AC_LEAVE+IA64_TASK_SIZE,r2
+	add r16=TASK_TI_AC_STAMP,r2
+	add r17=TASK_TI_AC_LEAVE,r2
 	;;
 	ld8 r18=[r16],TI_AC_STIME-TI_AC_STAMP	// time at last check in kernel
 	ld8 r19=[r17],TI_AC_UTIME-TI_AC_LEAVE	// time at leave kernel

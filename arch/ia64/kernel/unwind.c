@@ -32,6 +32,7 @@
 #include <linux/elf.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>
+#include <linux/sched/task_stack.h>
 #include <linux/slab.h>
 
 #include <asm/unwind.h>
@@ -1973,7 +1974,7 @@ unw_unwind_to_user (struct unw_frame_info *info)
 
 	do {
 		unw_get_sp(info, &sp);
-		if ((long)((unsigned long)info->task + IA64_STK_OFFSET - sp)
+		if ((long)((unsigned long)task_stack_page(info->task) + IA64_STK_OFFSET - sp)
 		    < IA64_PT_REGS_SIZE) {
 			UNW_DPRINT(0, "unwind.%s: ran off the top of the kernel stack\n",
 				   __func__);
@@ -2016,8 +2017,8 @@ init_frame_info (struct unw_frame_info *info, struct task_struct *t,
 	 */
 	memset(info, 0, sizeof(*info));
 
-	rbslimit = (unsigned long) t + IA64_RBS_OFFSET;
-	stklimit = (unsigned long) t + IA64_STK_OFFSET;
+	rbslimit = (unsigned long) task_stack_page(t) + IA64_RBS_OFFSET;
+	stklimit = (unsigned long) task_stack_page(t) + IA64_STK_OFFSET;
 
 	rbstop   = sw->ar_bspstore;
 	if (rbstop > stklimit || rbstop < rbslimit)

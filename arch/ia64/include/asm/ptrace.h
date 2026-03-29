@@ -16,9 +16,7 @@
 #ifndef _ASM_IA64_PTRACE_H
 #define _ASM_IA64_PTRACE_H
 
-#ifndef ASM_OFFSETS_C
 #include <asm/asm-offsets.h>
-#endif
 #include <uapi/asm/ptrace.h>
 
 /*
@@ -47,10 +45,6 @@
 
 #define KERNEL_STACK_SIZE		IA64_STK_OFFSET
 
-#ifndef __ASSEMBLY__
-
-#include <asm/current.h>
-#include <asm/page.h>
 
 /*
  * We use the ia64_psr(regs)->ri to determine which of the three
@@ -59,6 +53,7 @@
  */
 # define instruction_pointer(regs) ((regs)->cr_iip + ia64_psr(regs)->ri)
 
+#ifndef __ASSEMBLY__
 static inline unsigned long user_stack_pointer(struct pt_regs *regs)
 {
 	/* FIXME: should this be bspstore + nr_dirty regs? */
@@ -93,10 +88,10 @@ static inline long regs_return_value(struct pt_regs *regs)
 #define current_user_stack_pointer() (current_pt_regs()->r12)
 
   /* given a pointer to a task_struct, return the user's pt_regs */
-# define task_pt_regs(t)		(((struct pt_regs *) ((char *) (t) + IA64_STK_OFFSET)) - 1)
+# define task_pt_regs(t)		(((struct pt_regs *) ((char *) (t)->stack + IA64_STK_OFFSET)) - 1)
 # define ia64_psr(regs)			((struct ia64_psr *) &(regs)->cr_ipsr)
 # define user_mode(regs)		(((struct ia64_psr *) &(regs)->cr_ipsr)->cpl != 0)
-# define user_stack(task,regs)	((long) regs - (long) task == IA64_STK_OFFSET - sizeof(*regs))
+# define user_stack(task,regs)	((long) regs - (long) (task)->stack == IA64_STK_OFFSET - sizeof(*regs))
 # define fsys_mode(task,regs)					\
   ({								\
 	  struct task_struct *_task = (task);			\
@@ -154,6 +149,7 @@ static inline long regs_return_value(struct pt_regs *regs)
 
   #define arch_has_single_step()  (1)
   #define arch_has_block_step()   (1)
+
 
 #endif /* !__ASSEMBLY__ */
 #endif /* _ASM_IA64_PTRACE_H */

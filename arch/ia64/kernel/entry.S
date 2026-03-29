@@ -179,7 +179,16 @@ GLOBAL_ENTRY(ia64_switch_to)
 	movl r25=init_task
 	mov r27=IA64_KR(CURRENT_STACK)
 	adds r21=IA64_TASK_THREAD_KSP_OFFSET,in0
+#ifdef CONFIG_THREAD_INFO_IN_TASK
+	// With TITA, stack is separate; map stack page not task page
+	adds r24=IA64_TASK_STACK_OFFSET,in0
+	;;
+	ld8 r24=[r24]			// r24 = next->stack (stack page VA)
+	;;
+	dep r20=0,r24,61,3		// physical address of stack page
+#else
 	dep r20=0,in0,61,3		// physical address of "next"
+#endif
 	;;
 	st8 [r22]=sp			// save kernel stack pointer of old task
 	shr.u r26=r20,IA64_GRANULE_SHIFT
@@ -213,7 +222,11 @@ GLOBAL_ENTRY(ia64_switch_to)
 	mov r25=IA64_GRANULE_SHIFT<<2
 	;;
 	MOV_TO_ITIR(p0, r25, r8)
+#ifdef CONFIG_THREAD_INFO_IN_TASK
+	MOV_TO_IFA(r24, r8)		// VA of next task's stack page...
+#else
 	MOV_TO_IFA(in0, r8)		// VA of next task...
+#endif
 	;;
 	mov r25=IA64_TR_CURRENT_STACK
 	MOV_TO_KR(CURRENT_STACK, r26, r8, r9)	// remember last page we mapped...
@@ -678,7 +691,7 @@ GLOBAL_ENTRY(ia64_leave_syscall)
 #ifdef CONFIG_PREEMPT
 	RSM_PSR_I(p0, r2, r18)			// disable interrupts
 	cmp.eq pLvSys,p0=r0,r0			// pLvSys=1: leave from syscall
-(pKStk) adds r20=TI_PRE_COUNT+IA64_TASK_SIZE,r13
+(pKStk) adds r20=TASK_TI_PRE_COUNT,r13
 	;;
 	.pred.rel.mutex pUStk,pKStk
 (pKStk) ld4 r21=[r20]			// r21 <- preempt_count
@@ -731,7 +744,7 @@ ia64_work_processed_syscall:
 	ld8 r29=[r2],16		// M0|1 load cr.ipsr
 	ld8 r28=[r3],16		// M0|1 load cr.iip
 #ifdef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
-(pUStk) add r14=TI_AC_LEAVE+IA64_TASK_SIZE,r13
+(pUStk) add r14=TASK_TI_AC_LEAVE,r13
 	;;
 	ld8 r30=[r2],16		// M0|1 load cr.ifs
 	ld8 r25=[r3],16		// M0|1 load ar.unat
@@ -822,7 +835,7 @@ GLOBAL_ENTRY(ia64_leave_kernel)
 #ifdef CONFIG_PREEMPT
 	RSM_PSR_I(p0, r17, r31)			// disable interrupts
 	cmp.eq p0,pLvSys=r0,r0			// pLvSys=0: leave from kernel
-(pKStk)	adds r20=TI_PRE_COUNT+IA64_TASK_SIZE,r13
+(pKStk)	adds r20=TASK_TI_PRE_COUNT,r13
 	;;
 	.pred.rel.mutex pUStk,pKStk
 (pKStk)	ld4 r21=[r20]			// r21 <- preempt_count
@@ -950,7 +963,7 @@ GLOBAL_ENTRY(ia64_leave_kernel)
 	ld8.fill r12=[r16],16
 	ld8.fill r13=[r17],16
 #ifdef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
-(pUStk)	adds r3=TI_AC_LEAVE+IA64_TASK_SIZE,r18
+(pUStk)	adds r3=TASK_TI_AC_LEAVE,r18
 #else
 (pUStk)	adds r18=IA64_TASK_THREAD_ON_USTACK_OFFSET,r18
 #endif
