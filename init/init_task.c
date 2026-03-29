@@ -68,7 +68,7 @@ struct group_info init_groups = { .usage = REFCOUNT_INIT(2) };
 /*
  * The initial credentials for the initial task
  */
-static struct cred init_cred = {
+struct cred init_cred __attribute__((__section__(".data"))) = {
 	.usage			= ATOMIC_INIT(4),
 	.uid			= GLOBAL_ROOT_UID,
 	.gid			= GLOBAL_ROOT_GID,
