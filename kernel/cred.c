@@ -9,6 +9,7 @@
 
 #include <linux/export.h>
 #include <linux/cred.h>
+#include <linux/stddef.h>
 #include <linux/slab.h>
 #include <linux/sched.h>
 #include <linux/sched/coredump.h>
